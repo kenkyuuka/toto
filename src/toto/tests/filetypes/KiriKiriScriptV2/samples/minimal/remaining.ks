@@ -1,0 +1,6 @@
+  ƒo[ƒWƒ‡ƒ“[r][r]
+[cm]
+hello[emb exp="f.x"]world[p]
+[cm]
+ABC[r]
+DEF[p]

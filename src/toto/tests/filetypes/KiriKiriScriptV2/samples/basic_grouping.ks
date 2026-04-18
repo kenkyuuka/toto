@@ -1,0 +1,10 @@
+; basic grouping test
+[cm]
+Single line text.[p][cm]
+[cm]
+Two line[r]
+group here.[p][cm]
+[cm]
+Three line[r]
+group with[r]
+final part.[p][cm]
