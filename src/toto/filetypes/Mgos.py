@@ -97,7 +97,7 @@ class Mgos(TranslatableFile):
         return bytecode_end, refs
 
     @classmethod
-    def extract_lines(cls, input_file, ignore_patterns=()):
+    def extract_lines(cls, input_file, ignore_patterns=(), **kwargs):
         data = input_file.read()
 
         # Walk bytecode to find string references and the string table boundary

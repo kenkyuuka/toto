@@ -3,10 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "toto"
+name = "toto-script-tool"
 dynamic = ["version"]
 description = "Visual novel script localization tool"
-requires-python = ">=3.10"
+readme = "README.md"
+requires-python = ">=3.11"
 license = "MIT"
 keywords = []
 authors = [
@@ -15,13 +16,19 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = ["Click", "chardet"]
+
+[project.urls]
+Homepage = "https://github.com/kenkyuuka/toto"
+Repository = "https://github.com/kenkyuuka/toto"
+Issues = "https://github.com/kenkyuuka/toto/issues"
 
 [project.scripts]
 toto = "toto.toto:cli"
@@ -33,6 +40,10 @@ kirikiri = "toto.filetypes.KiriKiriScriptV2:KiriKiriScript"
 mgos = "toto.filetypes.Mgos:Mgos"
 agsd = "toto.filetypes.AgsdSpt:AgsdSpt"
 advhd = "toto.filetypes.AdvHdWs2:AdvHdWs2"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/toto"]
+exclude = ["src/toto/tests"]
 
 [tool.hatch.version]
 path = "src/toto/__about__.py"
@@ -53,7 +64,7 @@ cov = "pytest src/toto/tests -n auto --maxprocesses 8 --cov --cov-report=term-mi
 [tool.hatch.envs.hatch-test]
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.10", "3.11", "3.12"]
+python = ["3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.lint]
 dependencies = [
@@ -79,12 +90,12 @@ all = [
 ]
 
 [tool.black]
-target-version = ["py310"]
+target-version = ["py311"]
 line-length = 120
 skip-string-normalization = true
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 120
 extend-exclude = ["scripts"]
 [tool.ruff.lint]

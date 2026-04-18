@@ -45,7 +45,7 @@ class DxLib(TranslatableFile):
         return offset
 
     @classmethod
-    def extract_lines(cls, input_file, ignore_patterns=()):
+    def extract_lines(cls, input_file, ignore_patterns=(), **kwargs):
         # assume we're starting with the med unpacked, so this is getting text from the individual
         # files
         textlines = []

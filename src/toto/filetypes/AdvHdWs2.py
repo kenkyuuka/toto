@@ -622,7 +622,7 @@ class AdvHdWs2(TranslatableFile):
         return list(workpath.glob('**/*.ws2'))
 
     @classmethod
-    def extract_lines(cls, input_file, ignore_patterns=()):
+    def extract_lines(cls, input_file, ignore_patterns=(), **kwargs):
         raw_data = input_file.read()
 
         encrypted = _detect_encrypted(raw_data)

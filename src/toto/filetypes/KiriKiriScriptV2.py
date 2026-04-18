@@ -106,6 +106,7 @@ class KiriKiriScript(TranslatableFile):
         ),
         line_end_macros=r'(?:\[[^\]]+\])+\\?',
         ignore_patterns=(),
+        **kwargs,
     ) -> tuple[BytesIO, list[TextLine], dict]:
         intermediate_file = BytesIO()
         textlines: list[TextLine] = []

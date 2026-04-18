@@ -25,7 +25,7 @@ class Anim(TranslatableFile):
         return list(workpath.glob('*_define.dat')) + list(workpath.glob('*_sce.dat'))
 
     @classmethod
-    def extract_lines(cls, input_file, ignore_patterns=()):
+    def extract_lines(cls, input_file, ignore_patterns=(), **kwargs):
         """Extract translatable lines from input_file.
 
         Return a tuple (output_file, textlines). output_file is a bytestream that can be written out as
