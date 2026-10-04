@@ -424,3 +424,67 @@ class TestWrapping:
         text_part = output.split('[cm]\r\n', 1)[1]  # skip header lines
         # Verify the wrap character appears between wrapped segments (not as eol)
         assert '[l][r]\r\n' in text_part
+
+
+# ---------------------------------------------------------------------------
+# iscript.ks — inline TJS blocks ([iscript]/@iscript ... [endscript]/@endscript)
+# ---------------------------------------------------------------------------
+
+
+def extract_bytes(data, **kwargs):
+    return KiriKiriScript.extract_lines(BytesIO(data), **kwargs)
+
+
+class TestIscriptBlocks:
+    def test_extract(self):
+        _, textlines, _ = extract('iscript.ks', codec='utf-8')
+        assert textlines == [
+            TextLine('<<<TRANS:2>>>', 'Alice was beginning to get very tired', '[r]'),
+            TextLine('<<<TRANS:14>>>', 'Alice drank from the bottle.', '[p][cm]'),
+            TextLine('<<<TRANS:18>>>', 'The Hatter poured tea.', '[p][cm]'),
+            TextLine('<<<TRANS:22>>>', 'The cake was gone.', '[p][cm]'),
+        ]
+
+    def test_block_passed_through(self):
+        """Every line of each block, delimiters included, is copied verbatim."""
+        data = (TEST_DATA / 'iscript.ks').read_bytes()
+        inter, _, _ = extract('iscript.ks', codec='utf-8')
+        original = data.splitlines(keepends=True)
+        intermediate = inter.read().splitlines(keepends=True)
+        assert intermediate[3:14] == original[3:14]
+        assert intermediate[15:18] == original[15:18]
+        assert intermediate[19:22] == original[19:22]
+
+    def test_identity_insert(self):
+        output = extract_and_insert_identity('iscript.ks', codec='utf-8')
+        assert output == (TEST_DATA / 'iscript.ks').read_bytes().decode('utf-8')
+
+    @pytest.mark.parametrize(
+        'opener',
+        [
+            ' [iscript]',  # leading spaces are not stripped by KAG
+            '[iscript] ',  # trailing whitespace
+            '[ISCRIPT]',  # case-sensitive
+            '[iscript foo=1]',  # attributes
+            '[iscript][r]',  # anything else on the line
+            '@iscript ',
+            '@iscript foo=1',
+        ],
+    )
+    def test_near_miss_opener_is_not_a_block(self, opener):
+        data = f'{opener}\r\nAlice fell down the well.[p]\r\n[endscript]\r\n'.encode('ascii')
+        _, textlines, _ = extract_bytes(data, codec='ascii')
+        assert textlines == [TextLine('<<<TRANS:1>>>', 'Alice fell down the well.', '[p]')]
+
+    @pytest.mark.parametrize('closer', [' [endscript]', '[endscript] ', '[ENDSCRIPT]', '@endscript '])
+    def test_near_miss_closer_does_not_end_block(self, closer):
+        data = f'[iscript]\r\n{closer}\r\nvar dormouse = "asleep";[p]\r\n[endscript]\r\n'.encode('ascii')
+        _, textlines, _ = extract_bytes(data, codec='ascii')
+        assert textlines == []
+
+    def test_unclosed_block_passes_through_to_eof(self, caplog):
+        data = b'Alice ran.[p]\r\n[iscript]\r\nvar rabbit = "late";\r\nOh dear![p]\r\n'
+        inter, textlines, _ = extract_bytes(data, codec='ascii')
+        assert textlines == [TextLine('<<<TRANS:0>>>', 'Alice ran.', '[p]')]
+        assert inter.read().splitlines(keepends=True)[1:] == data.splitlines(keepends=True)[1:]
+        assert 'line 2' in caplog.text
