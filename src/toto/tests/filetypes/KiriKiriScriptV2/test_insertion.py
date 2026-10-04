@@ -297,6 +297,40 @@ class TestUtf16Bom:
 
 
 # ---------------------------------------------------------------------------
+# inline_tags.ks — UTF-16 LE with BOM; lines that begin with inline tags,
+# tag-only lines, and macros in the middle of a line
+# ---------------------------------------------------------------------------
+
+INLINE_TAGS_EXPECTED = [
+    TextLine('<<<TRANS:9>>>', '[ruby base=Alice ruby=ARIS]was beginning to get very tired.', ''),
+    TextLine('<<<TRANS:12>>>', 'The White Rabbit hurried past, muttering to itself.', ''),
+    TextLine('<<<TRANS:16>>>', '[「]Oh dear! Oh dear! I shall be late![☆]」', ''),
+    TextLine('<<<TRANS:22>>>', '[ruby base=Alice ruby=ARIS]peekedinto the rabbit-hole.', '[p]'),
+    TextLine('<<<TRANS:24>>>', 'Down, down,[r] down.', '[p]'),
+]
+
+
+@pytest.mark.parametrize('codec', [None, 'utf-16-le'])
+class TestInlineTags:
+    def test_extract(self, codec):
+        _, textlines, _ = extract('inline_tags.ks', codec=codec)
+        assert textlines == INLINE_TAGS_EXPECTED
+
+    def test_bom_recorded(self, codec):
+        """The BOM is stored in metadata rather than left in the decoded text."""
+        _, _, meta = extract('inline_tags.ks', codec=codec)
+        assert meta['codec'] == 'utf-16-le'
+        assert meta['bom'] == b'\xff\xfe'
+
+    def test_identity_roundtrip(self, codec):
+        original = (TEST_DATA / 'inline_tags.ks').read_bytes()
+        inter, textlines, meta = extract('inline_tags.ks', codec=codec, line_end_macros=None)
+        trans_dict = {tl.key: tl for tl in textlines}
+        output = KiriKiriScript.insert_lines(inter, trans_dict, codec=meta['codec'], bom=meta['bom'])
+        assert output.read() == original
+
+
+# ---------------------------------------------------------------------------
 # Text wrapping — width and wrap parameters in insert_lines
 # ---------------------------------------------------------------------------
 
