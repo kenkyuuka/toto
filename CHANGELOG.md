@@ -9,6 +9,7 @@
 - **KiriKiri**: Extracted dialogue (`[「]…`) and choice (`[select link=…]`) lines no longer include the trailing line break.
 - **KiriKiri**: A byte-order mark is no longer extracted as part of the first line when `--codec` is given explicitly (e.g. `utf-16-le`).
 - **KiriKiri**: Text at the end of a script is no longer lost when the file ends mid-group (e.g. after a `[r]` line or a trailing `「…」` line).
+- **KiriKiri**: TJS code inside `[iscript]`…`[endscript]` (or `@iscript`…`@endscript`) blocks is no longer extracted as text.
 
 ## [1.0.0] — 2026-04-17
 

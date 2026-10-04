@@ -20,6 +20,16 @@ _ASCII_WS = ' \t\n\r\x0b\x0c'
 _TAG = r"""\[(?:=[ \t]*[&%]?(?:"(?:`.|[^"`])*"|'(?:`.|[^'`])*')|`.|[^\]])*\]"""
 _TAG_ONLY_RE = re.compile(rf'(?:[ \t]*{_TAG})+[ \t]*\\?')
 
+# Inline TJS blocks.  KAG recognizes a delimiter only when the whole line,
+# after leading tabs are stripped, is exactly one of these strings.
+_SCRIPT_START = frozenset(('[iscript]', '[iscript]\\', '@iscript'))
+_SCRIPT_END = frozenset(('[endscript]', '[endscript]\\', '@endscript'))
+
+
+def _kag_line(line):
+    """Return a line as KAG compares it: terminator removed, leading tabs stripped."""
+    return line.splitlines()[0].lstrip('\t')
+
 
 class _Group:
     """Accumulates consecutive [r]-terminated lines into a single translatable unit."""
@@ -135,7 +145,22 @@ class KiriKiriScript(TranslatableFile):
         if codecs.lookup(codec).name in ('shift_jis', 'cp932'):
             cp932_fixup = build_file_cp932_fixup([raw_data])
 
+        script_start = None
         for i, line in enumerate(text.splitlines(keepends=True)):
+            # Inline TJS code is passed through unchanged, delimiters included.
+            if script_start is not None:
+                intermediate_file.write(line.encode(codec, errors='backslashreplace'))
+                if _kag_line(line) in _SCRIPT_END:
+                    script_start = None
+                continue
+            if _kag_line(line) in _SCRIPT_START:
+                if group:
+                    group.flush(intermediate_file, textlines, codec)
+                    group = _Group()
+                intermediate_file.write(line.encode(codec, errors='backslashreplace'))
+                script_start = i
+                continue
+
             stripped = line.strip(_ASCII_WS)
             lstripped = line.lstrip(_ASCII_WS)
             rstripped = line.rstrip(_ASCII_WS)
@@ -198,6 +223,11 @@ class KiriKiriScript(TranslatableFile):
                 # Standalone text line with no macro.
                 intermediate_file.write((key + ending).encode(codec, errors='backslashreplace'))
                 textlines.append(TextLine(key, rstripped, ''))
+
+        # KAG rejects an unclosed block; keep its contents out of the
+        # translation rather than guessing where the code ends.
+        if script_start is not None:
+            logger.warning('Unclosed [iscript] block starting at line %d', script_start + 1)
 
         # The file may end while a group is still open.
         if group:
