@@ -152,23 +152,22 @@ class Anim(TranslatableFile):
     @classmethod
     def decrypt(cls, data: bytes):
         key = bytearray(data[4:20])
-        data = bytearray(data[20:])
-        length = len(data)
+        buf = bytearray(data[20:])
+        length = len(buf)
         v = 0
         for i in range(length):
-            data[i] = key[v] ^ data[i]
+            buf[i] = key[v] ^ buf[i]
             v += 1
             if v == 16:
                 v = 0
-                key = cls.switch_key(key, data[i - 1])
-        return data
+                key = cls.switch_key(key, buf[i - 1])
+        return buf
 
     @classmethod
     def encrypt(cls, data: bytes, key: bytes | None = None):
         length = len(data)
         enc_key: bytearray = bytearray(key) if key is not None else bytearray(b'\x00' * 16)
-        new_data = b'\x00\x00\x00\x01' + bytes(enc_key) + b'\x00' * length
-        new_data = bytearray(new_data)
+        new_data = bytearray(b'\x00\x00\x00\x01' + bytes(enc_key) + b'\x00' * length)
 
         v = 0
         for i in range(length):
