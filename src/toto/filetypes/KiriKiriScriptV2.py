@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 # not fullwidth space or other Unicode whitespace.
 _ASCII_WS = ' \t\n\r\x0b\x0c'
 
+# A line consisting solely of tags, e.g. ``[bg file=x]``, ``[\]`` or
+# ``[eval exp="a[0]"]``.  As in KAG's parser, a quote only delimits a value
+# when it directly follows ``=`` (plus optional whitespace and ``&``/``%``);
+# elsewhere it is literal.  A backtick escapes the next character.
+_TAG = r"""\[(?:=[ \t]*[&%]?(?:"(?:`.|[^"`])*"|'(?:`.|[^'`])*')|`.|[^\]])*\]"""
+_TAG_ONLY_RE = re.compile(rf'(?:[ \t]*{_TAG})+[ \t]*\\?')
+
 
 class _Group:
     """Accumulates consecutive [r]-terminated lines into a single translatable unit."""
@@ -93,6 +100,12 @@ class KiriKiriScript(TranslatableFile):
                 bom = b'\xfe\xff'
                 codec = 'utf-16-be'
 
+        # A BOM can survive decoding when the codec was given explicitly
+        # (e.g. utf-16-le or utf-8).  Strip it and track it separately.
+        if text.startswith('﻿'):
+            text = text[1:]
+            bom = '﻿'.encode(codec)
+
         return text, codec, bom
 
     @classmethod
@@ -112,7 +125,7 @@ class KiriKiriScript(TranslatableFile):
         textlines: list[TextLine] = []
         group = _Group()
 
-        command_starts = ('[', '*', ';', '@', '//', '{')
+        command_starts = ('*', ';', '@', '//', '{')
         macro_re = re.compile(r'(?P<text>.*?)(?P<eol>' + line_end_macros + ')') if line_end_macros else None
 
         raw_data = input_file.read()
@@ -135,31 +148,30 @@ class KiriKiriScript(TranslatableFile):
                 intermediate_file.write(line.encode(codec, errors='backslashreplace'))
                 continue
 
-            # Blank lines and command lines: flush any open group, then pass through.
-            if stripped == '' or any(lstripped.startswith(s) for s in command_starts):
-                if group:
-                    group.flush(intermediate_file, textlines, codec)
-                    group = _Group()
-
-                if (
-                    lstripped.startswith('[select link="')
-                    or lstripped.startswith('[「]')
-                    or lstripped.startswith('[（]')
-                ):
-                    # Certain commands contain translatable text.
-                    key = f'<<<TRANS:{i}>>>'
-                    leading = line[: len(line) - len(lstripped)]
-                    intermediate_file.write((leading + key).encode(codec, errors='backslashreplace'))
-                    textlines.append(TextLine(key, lstripped, ''))
-                else:
-                    intermediate_file.write(line.encode(codec, errors='backslashreplace'))
-                continue
-
             key = f'<<<TRANS:{i}>>>'
             leading = line[: len(line) - len(lstripped)]
             ending = line[len(rstripped) :]
 
-            if macro_re and (m := macro_re.match(stripped)):
+            # Blank lines, command lines, and tag-only lines: flush any open
+            # group, then pass through.
+            if (
+                stripped == ''
+                or any(lstripped.startswith(s) for s in command_starts)
+                or _TAG_ONLY_RE.fullmatch(stripped)
+            ):
+                if group:
+                    group.flush(intermediate_file, textlines, codec)
+                    group = _Group()
+
+                if lstripped.startswith('[select link="'):
+                    # Choice text lives in a tag attribute.
+                    intermediate_file.write((leading + key + ending).encode(codec, errors='backslashreplace'))
+                    textlines.append(TextLine(key, stripped, ''))
+                else:
+                    intermediate_file.write(line.encode(codec, errors='backslashreplace'))
+                continue
+
+            if macro_re and (m := macro_re.fullmatch(stripped)):
                 eol = m.group('eol')
                 text_content = m.group('text')
 

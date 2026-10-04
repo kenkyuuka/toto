@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from toto.filetypes.KiriKiriScriptV2 import KiriKiriScript
+from toto.filetypes.KiriKiriScriptV2 import _TAG_ONLY_RE, KiriKiriScript
 
 NONFREE_DIR = Path(__file__).parent / "samples" / "nonfree"
 
@@ -48,3 +48,20 @@ def test_identity_roundtrip(script_file):
     )
 
     assert output.read() == original, f"roundtrip mismatch for {script_file.name}"
+
+
+@pytest.mark.nonfree
+@pytest.mark.parametrize(
+    "script_file",
+    _files,
+    ids=[str(p.relative_to(NONFREE_DIR)) for p in _files],
+)
+def test_extracted_text_is_clean(script_file):
+    """Extracted text has no BOM, no line endings, and no tag-only lines."""
+    _, textlines, _ = KiriKiriScript.extract_lines(BytesIO(script_file.read_bytes()))
+
+    for tl in textlines:
+        assert not tl.text.startswith('﻿'), tl
+        assert '\r' not in tl.text and '\n' not in tl.text, tl
+        if not tl.text.startswith('[select link="'):
+            assert not _TAG_ONLY_RE.fullmatch(tl.text), tl
