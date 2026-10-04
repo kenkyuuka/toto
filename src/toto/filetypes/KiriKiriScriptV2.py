@@ -199,6 +199,10 @@ class KiriKiriScript(TranslatableFile):
                 intermediate_file.write((key + ending).encode(codec, errors='backslashreplace'))
                 textlines.append(TextLine(key, rstripped, ''))
 
+        # The file may end while a group is still open.
+        if group:
+            group.flush(intermediate_file, textlines, codec)
+
         intermediate_file.seek(0)
         metadata = {'codec': codec, 'bom': bom}
         if cp932_fixup:
