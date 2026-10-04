@@ -71,7 +71,7 @@ dependencies = [
   "black>=23.1.0",
   "mypy>=1.0.0",
   "pytest",
-  "ruff>=0.0.243",
+  "ruff>=0.16,<0.17",
 ]
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/toto}"
@@ -134,7 +134,7 @@ ignore = [
   # shelve/pickle used intentionally by the CLI
   "S301",
   # Ignore complexity
-  "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR0917",
   # Magic values are standard in binary format parsing (0xFF, 0x81, etc.)
   "PLR2004",
   # Quote style managed by black (skip-string-normalization = true)
