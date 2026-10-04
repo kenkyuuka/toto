@@ -166,12 +166,11 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
             if not os.path.exists(inpath / trans_name):
                 break
             with open(inpath / trans_name, encoding='utf_8') as vs:
-                tlines.update(dict(zip(list(intrans.keys())[i * 10000 : (i + 1) * 10000], list(vs), strict=True)))
+                lines = [v.rstrip('\n') for v in vs]
+                tlines.update(dict(zip(list(intrans.keys())[i * 10000 : (i + 1) * 10000], lines, strict=True)))
 
         if skip_identical and tlines:
-            all_identical = all(
-                v.rstrip('\n') == intrans[k.strip()].text.replace('\n', '\\n') for k, v in tlines.items()
-            )
+            all_identical = all(v == intrans[k.strip()].text.replace('\n', '\\n') for k, v in tlines.items())
             if all_identical:
                 continue
 

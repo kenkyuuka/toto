@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- `insert` no longer writes the translation file's line break into the output for lines that aren't wrapped. Previously KiriKiri scripts with CRLF line endings gained a stray LF on each such line (`text\n\r\n`), and DxLib and AdvHD strings gained a trailing newline.
 - **KiriKiri**: Lines that begin with an inline tag (e.g. `[ruby …]text`) are now extracted. Only lines made up entirely of tags are skipped.
 - **KiriKiri**: Text after a mid-line tag (e.g. `[ruby]`, `[emb]`, `[r]`) is no longer silently dropped; only tags at the end of the line are treated as end-of-line macros.
 - **KiriKiri**: Extracted dialogue (`[「]…`) and choice (`[select link=…]`) lines no longer include the trailing line break.
