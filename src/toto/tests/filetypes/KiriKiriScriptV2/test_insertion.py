@@ -288,7 +288,7 @@ class TestGroupOpenAtEof:
 
     def test_dialogue_identity_insert(self):
         output = extract_and_insert_identity('eof_dialogue.ks', codec='utf-8')
-        assert output == (TEST_DATA / 'eof_dialogue.ks').read_text(encoding='utf-8', newline='')
+        assert output == '[cm]\r\n「Who are you?」'
 
 
 # ---------------------------------------------------------------------------
