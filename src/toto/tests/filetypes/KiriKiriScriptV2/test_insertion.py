@@ -264,6 +264,34 @@ class TestSingleLineDialogue:
 
 
 # ---------------------------------------------------------------------------
+# eof_r_group.ks / eof_dialogue.ks — file ends while a group is still open
+# ---------------------------------------------------------------------------
+
+
+class TestGroupOpenAtEof:
+    def test_r_group_extract(self):
+        _, textlines, _ = extract('eof_r_group.ks', codec='ascii')
+        assert textlines == [
+            TextLine(
+                '<<<TRANS:1>>>', 'Alice was beginning to get very tiredof sitting by her sister on the bank', '[r]'
+            ),
+        ]
+
+    def test_r_group_identity_insert(self):
+        output = extract_and_insert_identity('eof_r_group.ks', codec='ascii')
+        assert output == '[cm]\r\nAlice was beginning to get very tiredof sitting by her sister on the bank[r]\r\n'
+
+    def test_dialogue_extract(self):
+        """A trailing 「…」 line opens a group; file has no final newline."""
+        _, textlines, _ = extract('eof_dialogue.ks', codec='utf-8')
+        assert textlines == [TextLine('<<<TRANS:1>>>', '「Who are you?」', '')]
+
+    def test_dialogue_identity_insert(self):
+        output = extract_and_insert_identity('eof_dialogue.ks', codec='utf-8')
+        assert output == (TEST_DATA / 'eof_dialogue.ks').read_text(encoding='utf-8', newline='')
+
+
+# ---------------------------------------------------------------------------
 # utf16_bom.ks — UTF-16 LE file with BOM
 # ---------------------------------------------------------------------------
 

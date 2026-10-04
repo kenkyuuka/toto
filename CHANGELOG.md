@@ -8,6 +8,7 @@
 - **KiriKiri**: Text after a mid-line tag (e.g. `[ruby]`, `[emb]`, `[r]`) is no longer silently dropped; only tags at the end of the line are treated as end-of-line macros.
 - **KiriKiri**: Extracted dialogue (`[「]…`) and choice (`[select link=…]`) lines no longer include the trailing line break.
 - **KiriKiri**: A byte-order mark is no longer extracted as part of the first line when `--codec` is given explicitly (e.g. `utf-16-le`).
+- **KiriKiri**: Text at the end of a script is no longer lost when the file ends mid-group (e.g. after a `[r]` line or a trailing `「…」` line).
 
 ## [1.0.0] — 2026-04-17
 
