@@ -1,0 +1,13 @@
+.git
+.env
+.venv
+htmlcov
+__pycache__
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.coverage
+dist
+build
+nonfree
+**/nonfree

@@ -1,0 +1,11 @@
+services:
+  app:
+    container_name: toto-dev
+    image: toto:dev
+    command: sh -c 'sleep infinity'
+    env_file:
+      - path: .env
+        required: false
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace

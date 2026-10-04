@@ -1,5 +1,4 @@
 # Virtual environments
-.env/
 .venv/
 
 # Python
@@ -25,6 +24,10 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+.env
+docker-compose.override.yml
 
 # Nonfree test samples (real game data, not distributable)
 src/toto/tests/**/nonfree/
