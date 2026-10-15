@@ -40,6 +40,7 @@ kirikiri = "toto.filetypes.KiriKiriScriptV2:KiriKiriScript"
 mgos = "toto.filetypes.Mgos:Mgos"
 agsd = "toto.filetypes.AgsdSpt:AgsdSpt"
 advhd = "toto.filetypes.AdvHdWs2:AdvHdWs2"
+liarsoft = "toto.filetypes.LiarSoftGsc:LiarSoftGsc"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/toto"]

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Liar-soft GSC** (`--filetype=liarsoft`): Extract and insert text in Liar-soft engine `.gsc` scripts (e.g. Studio Ubai's 人妻魔法戦士サクラ). Translated lines are wrapped with `^n` on insert. Speaker names are extracted once per script, at their first appearance, and the translation is applied to every line that uses them.
+
 ### Fixed
 
 - `insert` no longer writes the translation file's line break into the output for lines that aren't wrapped. Previously KiriKiri scripts with CRLF line endings gained a stray LF on each such line (`text\n\r\n`), and DxLib and AdvHD strings gained a trailing newline.
