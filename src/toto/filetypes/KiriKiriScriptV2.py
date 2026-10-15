@@ -26,6 +26,86 @@ _SCRIPT_START = frozenset(('[iscript]', '[iscript]\\', '@iscript'))
 _SCRIPT_END = frozenset(('[endscript]', '[endscript]\\', '@endscript'))
 
 
+# Inline text tokens, for wrapping.  ``[[`` is KAG's escape for a literal ``[``.
+_INLINE_TOKEN_RE = re.compile(rf'(?P<esc>\[\[)|(?P<tag>{_TAG})|(?P<space>[ \t]+)|(?P<text>[^ \t\[]+)')
+
+
+def _tag_width(tag):
+    """Return the displayed width of an inline tag.
+
+    A bare tag with a non-ASCII name, such as ``[☆]``, is a game macro that
+    draws a single symbol, so counts as one character.  Other tags only
+    affect formatting and take up no space.
+    """
+    inner = tag[1:-1].strip()
+    return 1 if inner and not inner.isascii() and not any(c.isspace() for c in inner) else 0
+
+
+def _is_line_break(tag):
+    return tag[1:-1].strip().lower() == 'r'
+
+
+def _wrap_tagged(text, width):
+    """Wrap text containing inline tags into lines of at most *width* displayed characters.
+
+    Tags are never split, and stay attached to any adjoining word.  An
+    explicit ``[r]`` is left in place but resets the line width.  A word
+    wider than *width* is not broken.
+
+    Returns a list of lines, or None if the text contains a malformed tag.
+    """
+    # Each chunk is (is_space, text, width, ends_with_line_break).
+    chunks = []
+    word, word_width = '', 0
+    pos = 0
+    while pos < len(text):
+        m = _INLINE_TOKEN_RE.match(text, pos)
+        if m is None:
+            return None
+        pos = m.end()
+        token = m.group()
+        if m.lastgroup == 'space':
+            if word:
+                chunks.append((False, word, word_width, False))
+                word, word_width = '', 0
+            chunks.append((True, token, len(token), False))
+        elif m.lastgroup == 'tag':
+            word += token
+            word_width += _tag_width(token)
+            if _is_line_break(token):
+                chunks.append((False, word, word_width, True))
+                word, word_width = '', 0
+        else:
+            word += token
+            word_width += 1 if m.lastgroup == 'esc' else len(token)
+    if word:
+        chunks.append((False, word, word_width, False))
+
+    lines = []
+    line, line_width = [], 0
+    # True until a word is placed after the start of a line or an explicit [r].
+    fresh = True
+    for is_space, chunk, chunk_width, line_break in chunks:
+        if is_space:
+            if line:
+                line.append(chunk)
+                line_width += chunk_width
+            continue
+        if not fresh and line_width + chunk_width > width:
+            while line and line[-1].isspace():
+                line.pop()
+            lines.append(''.join(line))
+            line, line_width = [], 0
+        line.append(chunk)
+        line_width += chunk_width
+        fresh = False
+        if line_break:
+            line_width = 0
+            fresh = True
+    lines.append(''.join(line).rstrip(' \t'))
+    return lines
+
+
 def _kag_line(line):
     """Return a line as KAG compares it: terminator removed, leading tabs stripped."""
     return line.splitlines()[0].lstrip('\t')
@@ -85,8 +165,24 @@ class KiriKiriScript(TranslatableFile):
 
     @classmethod
     def should_wrap_line(cls, text: str, width: int | None) -> bool:
-        """Skip wrapping for lines containing KiriKiri inline commands (``[``)."""
-        return '[' not in text and super().should_wrap_line(text, width)
+        """Measure lines containing inline tags by their displayed width.
+
+        Lines with malformed tags are never wrapped.
+        """
+        if '[' not in text or width is None:
+            return super().should_wrap_line(text, width)
+        lines = _wrap_tagged(text.strip(), width)
+        return lines is not None and len(lines) > 1
+
+    @staticmethod
+    def wrap_text(text: str, width: int, wrap: str, newline: str) -> str:
+        """Wrap text, keeping inline tags intact and measuring them by displayed width."""
+        if '[' not in text:
+            return TranslatableFile.wrap_text(text, width, wrap, newline)
+        lines = _wrap_tagged(text.strip(), width)
+        if lines is None:
+            return text
+        return (wrap + newline).join(lines)
 
     @staticmethod
     def get_paths(workpath) -> list[Path]:

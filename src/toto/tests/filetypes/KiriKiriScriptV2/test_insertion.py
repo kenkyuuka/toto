@@ -386,15 +386,24 @@ class TestWrapping:
         lines = output.splitlines(keepends=True)
         assert lines[2] == 'Short text.[p][cm]\r\n'
 
-    def test_no_wrap_when_text_has_commands(self):
-        """Text containing [ should not be wrapped (it has inline commands)."""
+    def test_wrap_when_text_has_commands(self):
+        """Inline commands are kept intact and take up no width when wrapping."""
         translations = [
             ('Text with [ruby text=command] inside.', '[p][cm]'),
         ]
         output = extract_and_insert_translated('wrapping.ks', translations, width=10, wrap='[r]', codec='ascii')
         lines = output.splitlines(keepends=True)
-        # Should be a single unwrapped line despite very small width
-        assert lines[2] == 'Text with [ruby text=command] inside.[p][cm]\r\n'
+        assert lines[2] == 'Text with [ruby text=command][r]\r\n'
+        assert lines[3] == 'inside.[p][cm]\r\n'
+
+    def test_no_wrap_when_text_has_malformed_command(self):
+        """Text with an unclosed [ is left unwrapped."""
+        translations = [
+            ('Text with [ruby text=command inside.', '[p][cm]'),
+        ]
+        output = extract_and_insert_translated('wrapping.ks', translations, width=10, wrap='[r]', codec='ascii')
+        lines = output.splitlines(keepends=True)
+        assert lines[2] == 'Text with [ruby text=command inside.[p][cm]\r\n'
 
     def test_no_wrap_when_width_is_none(self):
         """Without width, text should not be wrapped (default behavior)."""
