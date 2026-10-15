@@ -5,7 +5,7 @@ from io import BytesIO
 
 import pytest
 
-from toto.filetypes.LiarSoftGsc import GscScript, LiarSoftGsc, build_gsc, parse_gsc
+from toto.filetypes.LiarSoftGsc import GscScript, LiarSoftGsc, build_gsc, find_name_indices, parse_gsc
 from toto.util import TextLine
 
 # ------------------------------------------------------------------ helpers --
@@ -186,6 +186,107 @@ def test_extract_records_cp932_fixup():
     data = bytes(data).replace('≒'.encode('cp932'), b'\x87\x90')
     _, _, metadata = _extract(data)
     assert metadata['cp932_fixup'] == {b'\x81\xe0': b'\x87\x90'}
+
+
+# ------------------------------------------------------------------ names --
+
+TEA_PARTY = [
+    '',
+    'アリス',
+    'お茶をもう少しいかが？',
+    '帽子屋',
+    'まだ一杯も飲んでいないわ。',
+    'アリス',
+    'だからもっとは飲めないわね。',
+    '帽子屋',
+    'まだ一杯も飲んでいないわ。',
+]
+
+
+@pytest.mark.unit
+def test_find_name_indices():
+    assert find_name_indices(parse_gsc(_make_gsc(TEA_PARTY))) == {1, 3, 5, 7}
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    'instruction',
+    [
+        struct.pack('<H7I', 0x51, 1, 0, 0, 0, 1, 2, 1),
+        struct.pack('<H7I', 0x51, 0, 0, 0, 0, 1, 2, 82),
+        struct.pack('<H7I', 0x51, 0, 0, 0, 0, 1, 0, 1),
+        struct.pack('<H7I', 0x51, 0, 0, 0, 0, 1, 99, 1),
+        b'\0' + struct.pack('<H7I', 0x51, 0, 0, 0, 0, 1, 2, 1) + b'\0',
+    ],
+    ids=['unknown-operand-set', 'bad-last-operand', 'no-text', 'text-out-of-range', 'unaligned'],
+)
+def test_find_name_indices_rejects_false_matches(instruction):
+    assert find_name_indices(parse_gsc(_make_gsc(['', 'アリス', 'こんにちは'], code=instruction))) == set()
+
+
+@pytest.mark.unit
+def test_find_name_indices_excludes_strings_used_as_text():
+    code = _message(1, 2) + _message(3, 1)
+    assert find_name_indices(parse_gsc(_make_gsc(['', 'アリス', 'こんにちは', 'チェシャ猫'], code=code))) == {3}
+
+
+@pytest.mark.unit
+def test_extract_deduplicates_names():
+    intermediate, textlines, _ = _extract(_make_gsc(TEA_PARTY))
+    assert [t.text for t in textlines] == [
+        'アリス',
+        'お茶をもう少しいかが？',
+        '帽子屋',
+        'まだ一杯も飲んでいないわ。',
+        'だからもっとは飲めないわね。',
+        'まだ一杯も飲んでいないわ。',
+    ]
+    assert _strings_of(intermediate) == [
+        '',
+        '<<<TRANS:0>>>',
+        '<<<TRANS:1>>>',
+        '<<<TRANS:2>>>',
+        '<<<TRANS:3>>>',
+        '<<<TRANS:0>>>',
+        '<<<TRANS:4>>>',
+        '<<<TRANS:2>>>',
+        '<<<TRANS:5>>>',
+    ]
+
+
+@pytest.mark.unit
+def test_insert_fills_every_copy_of_a_name():
+    data = _make_gsc(TEA_PARTY)
+    intermediate, textlines, _ = _extract(data)
+    english = [
+        'Alice',
+        'Have some more tea?',
+        'Hatter',
+        "I've had nothing yet.",
+        "So I can't take more.",
+        'Nothing yet.',
+    ]
+    out = _insert(intermediate, {t.key: e for t, e in zip(textlines, english, strict=True)})
+    result = parse_gsc(out)
+    assert [s.decode('cp932') for s in result.strings] == [
+        '',
+        'Alice',
+        'Have some more tea?',
+        'Hatter',
+        "I've had nothing yet.",
+        'Alice',
+        "So I can't take more.",
+        'Hatter',
+        'Nothing yet.',
+    ]
+    assert result.code == parse_gsc(data).code
+
+
+@pytest.mark.unit
+def test_identity_roundtrip_with_deduplicated_names():
+    data = _make_gsc(TEA_PARTY)
+    intermediate, textlines, _ = _extract(data)
+    assert _insert(intermediate, {t.key: t.text for t in textlines}) == data
 
 
 # ----------------------------------------------------------------- insert --

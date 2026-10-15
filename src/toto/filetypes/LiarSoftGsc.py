@@ -9,6 +9,10 @@ from .TranslatableFile import TranslatableFile
 HEADER = struct.Struct('<9I')
 HEADER_SIZE = HEADER.size
 
+# Show-message instruction: opcode, unknown, voice, unknown, unknown, name index, text index, unknown
+OP_MESSAGE = 0x51
+MESSAGE = struct.Struct('<H7I')
+
 # Explicit line break markup inside message text
 LINE_BREAK = '^n'
 
@@ -97,6 +101,30 @@ def build_gsc(script):
     return header + script.code + bytes(index) + bytes(pool) + script.t2 + script.t3
 
 
+def find_name_indices(script):
+    """Return the T1 indices used as speaker names by show-message instructions.
+
+    The code is not disassembled; instead every 2-byte-aligned ``0x51`` opcode
+    is checked against the operand values seen in genuine messages, which
+    rejects ``51 00`` byte pairs that occur inside other instructions.
+    """
+    count = len(script.strings)
+    code = script.code
+    names = set()
+    texts = set()
+    for pos in range(0, len(code) - MESSAGE.size + 1, 2):
+        if code[pos] != OP_MESSAGE or code[pos + 1] != 0:
+            continue
+        _, unk0, _voice, unk2, unk3, name, text, unk6 = MESSAGE.unpack_from(code, pos)
+        if unk0 or unk2 or unk3 or unk6 > 1 or not 0 < text < count or name >= count:
+            continue
+        texts.add(text)
+        if name:
+            names.add(name)
+    # A string that is also shown as message text is not purely a name.
+    return names - texts
+
+
 def _is_text(raw):
     # Resource names and labels are plain ASCII; anything else is display text.
     return not raw.isascii()
@@ -119,16 +147,23 @@ class LiarSoftGsc(TranslatableFile):
     @classmethod
     def extract_lines(cls, input_file, ignore_patterns=(), unwrap=False):
         script = parse_gsc(input_file.read())
+        name_indices = find_name_indices(script)
 
         textlines = []
         raw_extracted = []
+        name_keys = {}  # name text -> TRANS key, so each name is extracted once
         for i, raw in enumerate(script.strings):
             if not _is_text(raw):
                 continue
             text = raw.decode('cp932')
             if cls._should_ignore(text, ignore_patterns):
                 continue
+            if i in name_indices and text in name_keys:
+                script.strings[i] = name_keys[text].encode('ascii')
+                continue
             key = f'<<<TRANS:{len(textlines)}>>>'
+            if i in name_indices:
+                name_keys[text] = key
             if unwrap:
                 text = text.replace(LINE_BREAK, '')
             textlines.append(TextLine(key, text, b''))

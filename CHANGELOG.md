@@ -4,7 +4,7 @@
 
 ### Added
 
-- **Liar-soft GSC** (`--filetype=liarsoft`): Extract and insert text in Liar-soft engine `.gsc` scripts (e.g. Studio Ubai's 人妻魔法戦士サクラ). Translated lines are wrapped with `^n` on insert.
+- **Liar-soft GSC** (`--filetype=liarsoft`): Extract and insert text in Liar-soft engine `.gsc` scripts (e.g. Studio Ubai's 人妻魔法戦士サクラ). Translated lines are wrapped with `^n` on insert. Speaker names are extracted once per script, at their first appearance, and the translation is applied to every line that uses them.
 
 ### Fixed
 
