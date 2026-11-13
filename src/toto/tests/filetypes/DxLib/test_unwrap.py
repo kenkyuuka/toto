@@ -235,6 +235,21 @@ class TestExtract:
         assert DxLib.insert_lines(intermediate, trans, width=45, **metadata).read() == data
 
 
+class TestDefaultMode:
+    @pytest.mark.unit
+    def test_unwraps_by_default(self):
+        data, _ = dialogue_script()
+        _, textlines, _ = DxLib.extract_lines(BytesIO(data))
+        assert JOINED in [t.text for t in textlines]
+
+    @pytest.mark.unit
+    def test_unwrap_can_be_disabled(self):
+        data, _ = dialogue_script()
+        _, textlines, _ = DxLib.extract_lines(BytesIO(data), unwrap=False)
+        texts = [t.text for t in textlines]
+        assert LINE1 in texts and JOINED not in texts
+
+
 class TestIdentity:
     @pytest.mark.unit
     def test_untranslated_roundtrip_is_byte_identical(self):

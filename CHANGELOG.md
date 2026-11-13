@@ -4,7 +4,7 @@
 
 ### Added
 
-- **DxLib**: `extract --unwrap` joins each message's lines into one line to translate, and `insert` rewraps the translation to `--width` (default 45 for DxLib). Messages can grow or shrink: line records are added or removed and every label, jump and menu offset is updated. A message that needs more than three lines is split across several clicks, with the speaker name repeated on each page. Dialogue continuation lines keep their full-width hanging indent, and messages left unchanged are written back exactly as they were. Speaker names and menu options are still extracted separately. Rewrapped scripts probably won't load saves made with the original scripts.
+- **DxLib**: `extract` now joins each message's lines into one line to translate (use `--no-unwrap` for the old one-string-at-a-time extraction), and `insert` rewraps the translation to `--width` (default 45 for DxLib). Messages can grow or shrink: line records are added or removed and every label, jump and menu offset is updated. A message that needs more than three lines is split across several clicks, with the speaker name repeated on each page. Dialogue continuation lines keep their full-width hanging indent, and messages left unchanged are written back exactly as they were. Speaker names and menu options are still extracted separately. Rewrapped scripts probably won't load saves made with the original scripts.
 
 ### Changed
 

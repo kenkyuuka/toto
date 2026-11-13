@@ -35,10 +35,11 @@ def cli():
 )
 @click.option(
     '--unwrap/--no-unwrap',
-    default=False,
-    help='Remove inline line breaks from extracted text so it can be re-wrapped on insertion.',
+    default=None,
+    help='Remove inline line breaks from extracted text so it can be re-wrapped on insertion. '
+    'The default depends on the file type (on for DxLib, off for AGSD).',
 )
-def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=False):
+def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None):
     """Extract lines from script files into a single file.
 
     The files given in paths will be scanned for lines that look like
@@ -91,8 +92,8 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
                 kwargs['codec'] = codec
             if ignore_patterns:
                 kwargs['ignore_patterns'] = ignore_patterns
-            if unwrap:
-                kwargs['unwrap'] = True
+            if unwrap is not None:
+                kwargs['unwrap'] = unwrap
             intermediate_file, textlines, metadata = fmt.extract_lines(f, **kwargs)
         (workpath / rel_path).parent.mkdir(parents=True, exist_ok=True)
         with open(workpath / rel_path, 'wb') as f:

@@ -32,7 +32,7 @@ _files = _collect_files()
 def test_identity_roundtrip(script_file):
     """Extract → identity translate → insert produces byte-identical output."""
     original = script_file.read_bytes()
-    intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(original))
+    intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(original), unwrap=False)
     trans = {t.key: t for t in textlines}
     intermediate.seek(0)
     output = DxLib.insert_lines(intermediate, trans, cp932_fixup=metadata.get('cp932_fixup'))

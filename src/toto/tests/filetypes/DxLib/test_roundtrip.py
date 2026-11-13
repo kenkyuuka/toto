@@ -50,7 +50,7 @@ def _make_dxlib_file(strings, header_prefix=b"\xde\xad\xbe\xef", pre_string_body
 
 def _roundtrip(data):
     """Extract then identity-insert, return output bytes."""
-    intermediate, textlines, _ = DxLib.extract_lines(BytesIO(data))
+    intermediate, textlines, _ = DxLib.extract_lines(BytesIO(data), unwrap=False)
     trans = {t.key: t for t in textlines}
     intermediate.seek(0)
     output = DxLib.insert_lines(intermediate, trans)
@@ -113,7 +113,7 @@ class TestIdentityRoundtrip:
 
 def _translate(data, suffix):
     """Extract, append *suffix* to every translatable line, insert; return output bytes."""
-    intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(data))
+    intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(data), unwrap=False)
     trans = {t.key: t._replace(text=t.text + suffix) for t in textlines}
     intermediate.seek(0)
     output = DxLib.insert_lines(intermediate, trans, **metadata)
@@ -135,7 +135,7 @@ class TestBodySize:
     @pytest.mark.unit
     def test_shorter_translation(self):
         original = _make_dxlib_file([self.ALICE], header_prefix=None)
-        intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(original))
+        intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(original), unwrap=False)
         trans = {t.key: t._replace(text="猫") for t in textlines}  # Cat
         intermediate.seek(0)
         result = DxLib.insert_lines(intermediate, trans, **metadata).read()

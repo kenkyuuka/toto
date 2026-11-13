@@ -254,11 +254,11 @@ class DxLib(TranslatableFile):
         return offset
 
     @classmethod
-    def extract_lines(cls, input_file, ignore_patterns=(), unwrap=False, **kwargs):
+    def extract_lines(cls, input_file, ignore_patterns=(), unwrap=True, **kwargs):
         """Extract translatable strings.
 
         Without *unwrap*, every translatable string in the pool is extracted on its own.
-        With *unwrap*, each message (the text lines up to a click) is extracted as one
+        With *unwrap* (the default), each message (the text lines up to a click) is extracted as one
         joined line so that insertion can rewrap it into as many lines as it needs.
         Files whose record layout can't be parsed fall back to the per-string mode.
         """
@@ -267,7 +267,7 @@ class DxLib(TranslatableFile):
             try:
                 script = Script.parse(data)
             except ValueError as e:
-                logger.warning('Cannot parse script records (%s); extracting strings without unwrapping', e)
+                logger.info('Cannot parse script records (%s); extracting strings without unwrapping', e)
             else:
                 return cls._extract_unwrapped(script, has_body_size(data), ignore_patterns)
         return cls._extract_legacy(BytesIO(data), ignore_patterns)
