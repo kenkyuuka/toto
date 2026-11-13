@@ -7,6 +7,8 @@ from click.testing import CliRunner
 
 from toto.toto import cli
 
+from .test_unwrap import messages
+
 ALICE = "アリスは不思議の国にいた"  # Alice was in Wonderland
 
 
@@ -39,3 +41,40 @@ def test_translated_script_has_updated_body_size(tmp_path):
     out = (outpath / "RABBIT").read_bytes()
     assert b"Alice fell down the rabbit hole" in out
     assert struct.unpack_from("<I", out, 0)[0] == len(out) - 0x10
+
+
+def _make_message_script(line):
+    """A one-message script: text, end of line, click."""
+    code = struct.pack("<HB", 1, 3) + b"\x01\x00\x00" + struct.pack("<HB", 2, 1) + b"\x00"
+    code += struct.pack("<HB", 2, 1) + b"\x04" + b"\x00"
+    pool = line.encode("cp932") + b"\0"
+    header = struct.pack("<IIHHI", len(code) + len(pool), len(code), 1, 0, 2)
+    return header + code + pool
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(("width_args", "width"), [([], 45), (["--width", "20"], 20)], ids=["default", "explicit"])
+def test_unwrapped_message_rewrapped(tmp_path, width_args, width):
+    """--unwrap joins a message; insert rewraps it to the DxLib default width or --width."""
+    src, workpath, transdir, outpath = (tmp_path / d for d in ("src", "working", "trans", "output"))
+    for d in (src, workpath, transdir, outpath):
+        d.mkdir()
+    (src / "RABBIT").write_bytes(_make_message_script(ALICE))
+
+    runner = CliRunner()
+    args = ["--workpath", str(workpath), "--filetype", "dxlib"]
+    result = runner.invoke(cli, ["extract", str(src / "RABBIT"), "--outpath", str(transdir), "--unwrap", *args])
+    assert result.exit_code == 0, result.output
+
+    english = "Alice was beginning to get very tired of sitting by her sister on the bank."
+    (trans_file,) = transdir.glob("*.trans*.txt")
+    trans_file.write_text(english + "\n", encoding="utf_8")
+
+    result = runner.invoke(cli, ["insert", str(transdir), "--outpath", str(outpath), *width_args, *args])
+    assert result.exit_code == 0, result.output
+
+    # At width 20 the text needs more than three lines, so it spans two pages.
+    lines = [line for page in messages((outpath / "RABBIT").read_bytes()) for line in page]
+    assert " ".join(lines) == english
+    assert all(len(s) <= width for s in lines)
+    assert len(lines) > 1

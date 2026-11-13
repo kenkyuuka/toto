@@ -128,7 +128,9 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
     type=click.Path(file_okay=False, resolve_path=True, path_type=pathlib.Path),
     default=pathlib.Path('./working/'),
 )
-@click.option('--width', type=int, default=60)
+@click.option(
+    '--width', type=int, default=None, help="Wrap width in characters. Defaults to the handler's default (60 for most)."
+)
 @click.option('--codec', type=str, default=None)
 @click.option('--wrap', type=str)
 @click.option('--filetype', type=str)
@@ -196,7 +198,7 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
             insert_kwargs['update_body_size'] = metadata['update_body_size']
 
         if fmt.default_wrap is not None:
-            insert_kwargs['width'] = width
+            insert_kwargs['width'] = width if width is not None else fmt.default_width
             insert_kwargs['wrap'] = wrap
         elif width:
             click.echo(f"Warning: {filetype} handler does not support text wrapping; --width ignored.")
