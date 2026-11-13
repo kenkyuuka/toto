@@ -109,3 +109,42 @@ class TestIdentityRoundtrip:
         result = _roundtrip(original)
         assert result[:4] == magic, f"Header bytes 0-3 were overwritten: expected {magic!r}, got {result[:4]!r}"
         assert result == original
+
+
+def _translate(data, suffix):
+    """Extract, append *suffix* to every translatable line, insert; return output bytes."""
+    intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(data))
+    trans = {t.key: t._replace(text=t.text + suffix) for t in textlines}
+    intermediate.seek(0)
+    output = DxLib.insert_lines(intermediate, trans, **metadata)
+    return output.read()
+
+
+class TestBodySize:
+    ALICE = "アリスは不思議の国にいた"  # Alice was in Wonderland
+    RABBIT = "白うさぎが走っていた"  # The White Rabbit was running
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize("suffix", ["、そして穴に落ちた", ""], ids=["longer", "same"])
+    def test_body_size_tracks_output_length(self, suffix):
+        """bytes 0-3 must equal len(output) - 0x10 after insertion."""
+        original = _make_dxlib_file([self.ALICE, "#cue", self.RABBIT], header_prefix=None, pre_string_body=b"\x01\x02")
+        result = _translate(original, suffix)
+        assert struct.unpack_from("<I", result, 0)[0] == len(result) - 0x10
+
+    @pytest.mark.unit
+    def test_shorter_translation(self):
+        original = _make_dxlib_file([self.ALICE], header_prefix=None)
+        intermediate, textlines, metadata = DxLib.extract_lines(BytesIO(original))
+        trans = {t.key: t._replace(text="猫") for t in textlines}  # Cat
+        intermediate.seek(0)
+        result = DxLib.insert_lines(intermediate, trans, **metadata).read()
+        assert struct.unpack_from("<I", result, 0)[0] == len(result) - 0x10
+
+    @pytest.mark.unit
+    def test_nonconforming_header_left_alone(self):
+        """If bytes 0-3 weren't a body size in the input, they are not rewritten."""
+        magic = b"\xca\xfe\xba\xbe"
+        original = _make_dxlib_file([self.ALICE], header_prefix=magic)
+        result = _translate(original, "、そして")
+        assert result[:4] == magic
