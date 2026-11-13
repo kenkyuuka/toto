@@ -31,6 +31,14 @@ def uncleanup_text(text):
     return text
 
 
+HEADER_SIZE = 0x10
+
+
+def has_body_size(script):
+    """Whether bytes 0-3 of *script* hold its body size (length minus the header)."""
+    return len(script) >= HEADER_SIZE and int.from_bytes(script[:4], 'little') == len(script) - HEADER_SIZE
+
+
 class DxLib(TranslatableFile):
     @staticmethod
     def get_paths(workpath):
@@ -50,6 +58,9 @@ class DxLib(TranslatableFile):
         # files
         textlines = []
         intermediate_file = BytesIO()
+
+        update_body_size = has_body_size(input_file.read())
+        input_file.seek(0)
 
         offset = cls.get_strings_offset(input_file)
 
@@ -95,10 +106,14 @@ class DxLib(TranslatableFile):
         metadata = {}
         if cp932_fixup:
             metadata['cp932_fixup'] = cp932_fixup
+        if update_body_size:
+            # Archive tools (and likely the engine) recognize scripts by this field, so
+            # insert_lines must keep it in step with the translated length.
+            metadata['update_body_size'] = True
         return intermediate_file, textlines, metadata
 
     @classmethod
-    def insert_lines(cls, intermediate_file, translation_dict, cp932_fixup=None):
+    def insert_lines(cls, intermediate_file, translation_dict, cp932_fixup=None, update_body_size=False):
         def get_trans(m):
             t = translation_dict[m.group(0).decode('cp932')]
             encoded = uncleanup_text(t.text).encode('cp932')
@@ -113,6 +128,9 @@ class DxLib(TranslatableFile):
         data = intermediate_file.read()
         new_data = re.sub(rb'<<<TRANS:\d+>>>', get_trans, data)
         output_file.write(new_data)
+        if update_body_size:
+            output_file.seek(0)
+            output_file.write((output_file.getbuffer().nbytes - HEADER_SIZE).to_bytes(4, 'little'))
         output_file.seek(0)
 
         return output_file

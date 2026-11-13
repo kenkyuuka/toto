@@ -28,14 +28,18 @@ reinstall:           ## Recreate hatch env (picks up new entry points)
 	hatch env prune && hatch env create
 
 ## Docker
+# Latest tamago release on PyPI. Passed to the image build so the tamago layer
+# is rebuilt exactly when a new release appears. Empty if PyPI is unreachable.
+TAMAGO_VERSION = $(shell python3 -c "import json,urllib.request as u;print(json.load(u.urlopen('https://pypi.org/pypi/tamagoarc/json',timeout=10))['info']['version'])" 2>/dev/null)
+
 container:           ## Build the toto CLI image (toto:latest)
 	@(DOCKER_BUILDKIT=1 docker build -t toto:latest --target final -f Dockerfile .)
 
 dev-deps:            ## Build the dev toolchain image (toto:dev-deps)
-	@(DOCKER_BUILDKIT=1 docker build -t toto:dev-deps --target dev-deps -f Dockerfile .)
+	@(DOCKER_BUILDKIT=1 docker build --build-arg TAMAGO_VERSION=$(TAMAGO_VERSION) -t toto:dev-deps --target dev-deps -f Dockerfile .)
 
 dev:                 ## Build the self-contained dev image (toto:dev)
-	@(DOCKER_BUILDKIT=1 docker build -t toto:dev --target dev -f Dockerfile .)
+	@(DOCKER_BUILDKIT=1 docker build --build-arg TAMAGO_VERSION=$(TAMAGO_VERSION) -t toto:dev --target dev -f Dockerfile .)
 
 up: dev-deps         ## Build and start the dev container
 	HOST_UID=$$(id -u) HOST_GID=$$(id -g) docker compose up -d --build

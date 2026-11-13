@@ -192,6 +192,8 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
             insert_kwargs['encryption_key'] = metadata['encryption_key']
         if metadata.get('cp932_fixup'):
             insert_kwargs['cp932_fixup'] = metadata['cp932_fixup']
+        if metadata.get('update_body_size'):
+            insert_kwargs['update_body_size'] = metadata['update_body_size']
 
         if fmt.default_wrap is not None:
             insert_kwargs['width'] = width
