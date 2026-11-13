@@ -59,10 +59,17 @@ class DxLib(TranslatableFile):
         textlines = []
         intermediate_file = BytesIO()
 
-        update_body_size = has_body_size(input_file.read())
+        data = input_file.read()
         input_file.seek(0)
+        update_body_size = has_body_size(data)
 
         offset = cls.get_strings_offset(input_file)
+
+        # The pool opens with the label table, u16 code offsets (count in the high half
+        # of header bytes 8-11), before the strings. Copy it through with the code.
+        label_count = int.from_bytes(data[10:12], 'little') if len(data) >= HEADER_SIZE else 0
+        if offset + 2 * label_count <= len(data):
+            offset += 2 * label_count
 
         # copy the file up to the strings
         intermediate_file.write(input_file.read(offset))
