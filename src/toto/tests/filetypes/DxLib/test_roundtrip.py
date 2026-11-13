@@ -148,3 +148,37 @@ class TestBodySize:
         original = _make_dxlib_file([self.ALICE], header_prefix=magic)
         result = _translate(original, "、そして")
         assert result[:4] == magic
+
+
+def _make_labelled_script(text, label_offset=0x104):
+    """A script with one label: the pool starts with its u16 code offset, before the strings."""
+    code = (struct.pack("<HB", 1, 1) + b"\x03") * (label_offset // 4)  # blank-line records
+    code += struct.pack("<HB", 2, 2) + b"\x07\x00"  # label 0 is defined here
+    code += struct.pack("<HB", 3, 3) + b"\x01\x00\x00"  # text, string 0
+    code += struct.pack("<HB", 4, 1) + b"\x04" + b"\x00"  # click, code terminator
+    pool = struct.pack("<H", label_offset) + text.encode("cp932") + b"\0" + b"start\0"
+    header = struct.pack("<IIHHI", len(code) + len(pool), len(code), 1, 1, 4)
+    return header + code + pool
+
+
+class TestLabelTable:
+    ALICE = "アリスは不思議の国にいた"  # Alice was in Wonderland
+
+    @pytest.mark.unit
+    def test_label_offsets_not_extracted(self):
+        """The label offset table before the strings must not leak into the first string."""
+        _, textlines, _ = DxLib.extract_lines(BytesIO(_make_labelled_script(self.ALICE)))
+        assert [t.text for t in textlines] == [self.ALICE]
+
+    @pytest.mark.unit
+    def test_label_offsets_survive_translation(self):
+        original = _make_labelled_script(self.ALICE)
+        result = _translate(original, "、そして")
+        pool = struct.unpack_from("<I", original, 4)[0] + 0x10
+        assert result[pool : pool + 2] == original[pool : pool + 2]
+        assert result == _make_labelled_script(self.ALICE + "、そして")
+
+    @pytest.mark.unit
+    def test_roundtrip(self):
+        original = _make_labelled_script(self.ALICE)
+        assert _roundtrip(original) == original

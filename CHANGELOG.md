@@ -20,6 +20,7 @@
 - **KiriKiri**: Text at the end of a script is no longer lost when the file ends mid-group (e.g. after a `[r]` line or a trailing `「…」` line).
 - **KiriKiri**: TJS code inside `[iscript]`…`[endscript]` (or `@iscript`…`@endscript`) blocks is no longer extracted as text.
 - **KiriKiri**: Lines containing inline tags (e.g. `[☆]`, `[ruby …]`) are now wrapped to `--width` on insert; previously they were left unwrapped. Tags are never split, formatting tags count as zero width, symbol macros such as `[☆]` count as one character, and an explicit `[r]` starts a new line.
+- **DxLib**: Scripts with labels no longer have stray control bytes at the start of their first extracted string. The pool's label offset table was being read as part of that string, and deleting the junk corrupted the labels.
 - **DxLib**: The script header's body-size field is now updated when a translation changes the script's length. Previously it kept the original size, so archive tools such as `tamago med create` didn't recognize translated files as scripts and stored them unencrypted. This only applies to scripts extracted with this version or later.
 
 ## [1.0.0] — 2026-04-17
