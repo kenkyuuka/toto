@@ -59,8 +59,8 @@ class TestDefaultWrap:
         assert KiriKiriScript.default_wrap == "[r]"
 
     @pytest.mark.unit
-    def test_dxlib_does_not_support_wrapping(self):
-        assert DxLib.default_wrap is None
+    def test_dxlib_supports_wrapping(self):
+        assert DxLib.default_wrap is not None
 
     @pytest.mark.unit
     def test_anim_does_not_support_wrapping(self):

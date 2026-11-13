@@ -16,6 +16,9 @@ class TranslatableFile(ABC):
     wrapping on certain lines.
     """
 
+    default_width: int = 60
+    """The wrap width used when ``insert`` isn't given ``--width``."""
+
     @classmethod
     def should_wrap_line(cls, text: str, width: int | None) -> bool:
         """Return True if this line of text should be wrapped.

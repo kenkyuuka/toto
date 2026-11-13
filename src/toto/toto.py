@@ -35,10 +35,11 @@ def cli():
 )
 @click.option(
     '--unwrap/--no-unwrap',
-    default=False,
-    help='Remove inline line breaks from extracted text so it can be re-wrapped on insertion.',
+    default=None,
+    help='Remove inline line breaks from extracted text so it can be re-wrapped on insertion. '
+    'The default depends on the file type (on for DxLib, off for AGSD).',
 )
-def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=False):
+def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None):
     """Extract lines from script files into a single file.
 
     The files given in paths will be scanned for lines that look like
@@ -91,8 +92,8 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
                 kwargs['codec'] = codec
             if ignore_patterns:
                 kwargs['ignore_patterns'] = ignore_patterns
-            if unwrap:
-                kwargs['unwrap'] = True
+            if unwrap is not None:
+                kwargs['unwrap'] = unwrap
             intermediate_file, textlines, metadata = fmt.extract_lines(f, **kwargs)
         (workpath / rel_path).parent.mkdir(parents=True, exist_ok=True)
         with open(workpath / rel_path, 'wb') as f:
@@ -128,7 +129,9 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
     type=click.Path(file_okay=False, resolve_path=True, path_type=pathlib.Path),
     default=pathlib.Path('./working/'),
 )
-@click.option('--width', type=int, default=60)
+@click.option(
+    '--width', type=int, default=None, help="Wrap width in characters. Defaults to the handler's default (60 for most)."
+)
 @click.option('--codec', type=str, default=None)
 @click.option('--wrap', type=str)
 @click.option('--filetype', type=str)
@@ -196,7 +199,7 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
             insert_kwargs['update_body_size'] = metadata['update_body_size']
 
         if fmt.default_wrap is not None:
-            insert_kwargs['width'] = width
+            insert_kwargs['width'] = width if width is not None else fmt.default_width
             insert_kwargs['wrap'] = wrap
         elif width:
             click.echo(f"Warning: {filetype} handler does not support text wrapping; --width ignored.")
