@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- **BLACKRAINBOW**: Each speaker display name is now extracted once per script instead of once per line of dialogue.
+
 ## [1.1.0] — 2026-11-20
 
 ### Added
