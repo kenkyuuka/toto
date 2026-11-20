@@ -4,6 +4,7 @@
 
 ### Added
 
+- **BLACKRAINBOW**: New `blackrainbow` handler for ADVDX `.spt` scripts (催眠術２, 裏催眠術２DL, 黒虹本2, 催眠術FullVoice), as unpacked from `*_spt.dat` / `script.dat` by tamago. Extracts dialogue, speaker display names, choices and scene titles. Message text is decrypted and re-encrypted automatically using the key of each known game; for other games pass the key with the new `extract --key` option. Dialogue is unwrapped by default and rewrapped on insert (default width 55, the engine doesn't wrap on its own), keeping the full-width hanging indent inside quotes. A message that needs more than two lines is continued on extra pages that repeat the speaker name and keep the message's read-tracking ID.
 - **DxLib**: `extract` now joins each message's lines into one line to translate (use `--no-unwrap` for the old one-string-at-a-time extraction), and `insert` rewraps the translation to `--width` (default 45 for DxLib). Messages can grow or shrink: line records are added or removed and every label, jump and menu offset is updated. A message that needs more than three lines is split across several clicks, with the speaker name repeated on each page. Dialogue continuation lines keep their full-width hanging indent, and messages left unchanged are written back exactly as they were. Speaker names and menu options are still extracted separately. Rewrapped scripts probably won't load saves made with the original scripts.
 
 ### Changed
