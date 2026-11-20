@@ -39,7 +39,14 @@ def cli():
     help='Remove inline line breaks from extracted text so it can be re-wrapped on insertion. '
     'The default depends on the file type (on for DxLib, off for AGSD).',
 )
-def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None):
+@click.option(
+    '--key',
+    type=str,
+    default=None,
+    help='Hex encryption key for formats that need one (BLACKRAINBOW message key). '
+    'By default the handler tries the keys it knows.',
+)
+def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None, key=None):
     """Extract lines from script files into a single file.
 
     The files given in paths will be scanned for lines that look like
@@ -58,6 +65,13 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
                 f'Invalid regex {pattern!r}: {e}',
                 param_hint="'--ignore-line-regex'",
             ) from None
+
+    if key is not None:
+        try:
+            if not bytes.fromhex(key):
+                raise ValueError('empty key')
+        except ValueError as e:
+            raise click.BadParameter(f'{key!r} is not a hex key: {e}', param_hint="'--key'") from None
 
     workpath.mkdir(parents=True, exist_ok=True)
     outpath.parent.mkdir(parents=True, exist_ok=True)
@@ -94,6 +108,8 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
                 kwargs['ignore_patterns'] = ignore_patterns
             if unwrap is not None:
                 kwargs['unwrap'] = unwrap
+            if key is not None:
+                kwargs['key'] = key
             intermediate_file, textlines, metadata = fmt.extract_lines(f, **kwargs)
         (workpath / rel_path).parent.mkdir(parents=True, exist_ok=True)
         with open(workpath / rel_path, 'wb') as f:

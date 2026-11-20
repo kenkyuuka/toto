@@ -12,6 +12,7 @@ A visual novel script localization tool. toto extracts translatable text from va
 | mgos (μ-GameOperationSystem) | `mgos` | `.o` |
 | AGSD (NicotineSoft) | `agsd` | `.spt` |
 | AdvHD (Willplus) | `advhd` | `.ws2` |
+| ADVDX (BLACKRAINBOW) | `blackrainbow` | `.spt` (unpacked from `*_spt.dat` / `script.dat` with tamago) |
 
 ## Installation
 
@@ -42,7 +43,8 @@ Options:
 - `--workpath` — where to store intermediate files (default: `./working/`)
 - `--codec` — force a specific text encoding
 - `--ignore-line-regex` — regex pattern to skip matching lines (repeatable)
-- `--unwrap` — remove inline line breaks from extracted text for re-wrapping on insertion (supported formats: `agsd`)
+- `--unwrap` — remove inline line breaks from extracted text for re-wrapping on insertion (supported formats: `agsd`, `blackrainbow`, `dxlib`; on by default for `blackrainbow` and `dxlib`)
+- `--key` — hex encryption key for formats that need one (`blackrainbow`: the message key; by default the known keys are tried)
 
 ### Insert
 
@@ -56,7 +58,7 @@ Options:
 - `--filetype` (required) — engine format
 - `--outpath` — where to write patched scripts (default: `./patch/`)
 - `--workpath` — intermediate file directory (default: `./working/`)
-- `--width` — line width for text wrapping (default: 60; supported formats: `agsd`, `kirikiri`)
+- `--width` — line width for text wrapping (default: the handler's own, usually 60; supported formats: `agsd`, `blackrainbow`, `dxlib`, `kirikiri`)
 - `--wrap` — wrapping mode (supported formats: `agsd`, `kirikiri`)
 - `--codec` — force output encoding
 - `--skip-identical` — skip files where all translations match the original
