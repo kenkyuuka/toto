@@ -435,8 +435,10 @@ class DxLib(TranslatableFile):
             if key is None:
                 continue
             lines = cls._message_lines(script, message)
-            text = translation_dict[key].text.replace('\\n', '\n')
-            if text == cleanup_text(cls._join_lines(lines)):
+            # OmegaT puts a space before many segments, untranslated ones included; without
+            # stripping it, an untranslated message would count as changed and be rewrapped.
+            text = translation_dict[key].text.replace('\\n', '\n').strip(' \t')
+            if text == cleanup_text(cls._join_lines(lines)).strip(' \t'):
                 continue
             out.extend(records[done : message.start])
             out.extend(cls._rewrap(records, message, text, width, cls._uses_indent(lines), encode, intern))

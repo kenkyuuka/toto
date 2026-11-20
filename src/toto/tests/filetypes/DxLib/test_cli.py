@@ -98,3 +98,25 @@ def test_no_unwrap_extracts_lines_separately(tmp_path):
     assert result.exit_code == 0, result.output
     (trans_file,) = transdir.glob("*.trans*.txt")
     assert trans_file.read_text(encoding="utf_8").splitlines() == lines
+
+
+@pytest.mark.integration
+def test_omegat_padding_leaves_untranslated_message_unchanged(tmp_path):
+    """OmegaT pads segments with a leading space; an untranslated message must come back byte-identical."""
+    src, workpath, transdir, outpath = (tmp_path / d for d in ("src", "working", "trans", "output"))
+    for d in (src, workpath, transdir, outpath):
+        d.mkdir()
+    original = _make_message_script(ALICE)
+    (src / "RABBIT").write_bytes(original)
+
+    runner = CliRunner()
+    args = ["--workpath", str(workpath), "--filetype", "dxlib"]
+    result = runner.invoke(cli, ["extract", str(src / "RABBIT"), "--outpath", str(transdir), *args])
+    assert result.exit_code == 0, result.output
+
+    (trans_file,) = transdir.glob("*.trans*.txt")
+    trans_file.write_text(f" {ALICE}\n", encoding="utf_8")
+
+    result = runner.invoke(cli, ["insert", str(transdir), "--outpath", str(outpath), *args])
+    assert result.exit_code == 0, result.output
+    assert (outpath / "RABBIT").read_bytes() == original

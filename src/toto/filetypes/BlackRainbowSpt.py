@@ -33,6 +33,8 @@ KNOWN_KEYS = (
 )
 
 CRLF = '\r\n'
+# Only ASCII spaces and tabs: a leading U+3000 is part of the text.
+ASCII_SPACE = ' \t'
 HANGING_INDENT = '　'
 INDENTED_OPENERS = '「『（'
 NAME_OPEN, NAME_CLOSE = '【', '】'
@@ -340,15 +342,17 @@ class BlackRainbowSpt(TranslatableFile):
         display, body = split_speaker(m.text.decode('cp932')) if m.name else (None, m.text.decode('cp932'))
         changed = False
         if item.get('name') is not None:
-            new = translation(item['name'])
-            changed |= new != display
+            new = translation(item['name']).strip(ASCII_SPACE)
+            changed |= new != display.strip(ASCII_SPACE)
             display = new
         pages = [body]
         if item.get('body') is not None:
             lines = body.split(CRLF)
             original = join_lines(lines) if item['unwrap'] else '\n'.join(lines)
-            new = translation(item['body'])
-            if new != original:
+            # OmegaT puts a space before many segments, untranslated ones included. The engine
+            # doesn't wrap, so a stray space would make the line count as changed and be rewrapped.
+            new = translation(item['body']).strip(ASCII_SPACE)
+            if new != original.strip(ASCII_SPACE):
                 changed = True
                 pages = cls._paginate(new, width, HANGING_INDENT if item.get('indent') else '')
                 if len(pages) > 1:

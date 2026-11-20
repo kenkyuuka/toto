@@ -5,6 +5,7 @@
 ### Fixed
 
 - **BLACKRAINBOW**: Each speaker display name is now extracted once per script instead of once per line of dialogue.
+- **BLACKRAINBOW**, **DxLib**: `insert` ignores spaces and tabs around a translation, such as the leading space OmegaT puts before many segments, when deciding whether a message changed. Untranslated messages were being rewrapped at the translation width (too wide for Japanese text) and are now written back unchanged.
 
 ## [1.1.0] — 2026-11-20
 
