@@ -43,6 +43,7 @@ advhd = "toto.filetypes.AdvHdWs2:AdvHdWs2"
 blackrainbow = "toto.filetypes.BlackRainbowSpt:BlackRainbowSpt"
 systemnnn = "toto.filetypes.SystemNnnSpt:SystemNnnSpt"
 systemnnn-xtx = "toto.filetypes.SystemNnnXtx:SystemNnnXtx"
+ai6win = "toto.filetypes.Ai6WinMes:Ai6WinMes"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/toto"]
