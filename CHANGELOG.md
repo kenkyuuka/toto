@@ -4,6 +4,7 @@
 
 ### Added
 
+- **System-NNN**: New `systemnnn` handler for System-NNN `.spt` scripts, as found loose in a game's `spt/` folder (変態露出調教妻 慶子, 監禁強襲 and other Cyc/CYCLET titles). Extracts dialogue, speaker names (once per script) and choices; labels and file names are left alone. Scripts are decrypted and re-encrypted automatically. Dialogue is unwrapped by default and rewrapped on insert (default width 48, since the engine doesn't wrap on its own), keeping the full-width hanging indent inside quotes; a warning is logged for messages longer than the window's 4 lines. Spaces in translated speaker names become full-width spaces so they can match `namecol.xtx`.
 - **System-NNN**: New `systemnnn-xtx` handler for the `.xtx` lists in `spt/` and `nya/` (`namecol.xtx`, `charaname.xtx`, `selist.xtx` …). Each Japanese entry is extracted on its own. Spaces and commas in a translation are made full-width so the entry stays one item for the engine, and entries over the engine's 127-byte limit are rejected.
 
 ### Fixed
