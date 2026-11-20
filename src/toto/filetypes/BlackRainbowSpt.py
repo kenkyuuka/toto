@@ -220,6 +220,7 @@ class BlackRainbowSpt(TranslatableFile):
         textlines = []
         items = []
         raws = []
+        name_keys = {}  # display name -> key; each name is exported once per file
 
         def export(text, raw):
             if not text or not should_translate(text) or cls._should_ignore(text, ignore_patterns):
@@ -228,6 +229,11 @@ class BlackRainbowSpt(TranslatableFile):
             textlines.append(TextLine(k, text, b''))
             raws.append(raw)
             return k
+
+        def export_name(display):
+            if display not in name_keys:
+                name_keys[display] = export(display, display.encode('cp932'))
+            return name_keys[display]
 
         out = []
         for idx, (op, payload) in enumerate(records):
@@ -246,7 +252,7 @@ class BlackRainbowSpt(TranslatableFile):
                 display, body = split_speaker(text) if m.name else (None, text)
                 item = {'r': idx, 'unwrap': unwrap}
                 if display is not None:
-                    item['name'] = export(display, display.encode('cp932'))
+                    item['name'] = export_name(display)
                 if body is not None:
                     lines = body.split(CRLF)
                     item['indent'] = uses_indent(lines)

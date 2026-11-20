@@ -222,6 +222,27 @@ def test_extract_unwrapped():
 
 
 @pytest.mark.unit
+def test_extract_names_once():
+    """A display name is exported once per file and shared by every message that shows it."""
+    data = build(
+        [
+            speech(0, ALICE, [SPEECH]),
+            speech(1, RABBIT, ["「遅刻だ、遅刻だ！」"]),
+            speech(2, ALICE, ["「待って！」"]),
+            # Same display name under a different internal speaker tag.
+            speech(3, "その他", ["「どうしよう」"], display=ALICE),
+        ]
+    )
+    _, lines, _ = extract(data)
+    assert [t.text for t in lines] == [ALICE, SPEECH, RABBIT, "「遅刻だ、遅刻だ！」", "「待って！」", "「どうしよう」"]
+
+    edit = {ALICE: "Alice", RABBIT: "White Rabbit"}
+    out, _ = roundtrip(data, edit=edit, width=44)
+    displays = [text.split("\r\n")[0] for *_, text in messages(out, OLD_KEY)]
+    assert displays == ["【Alice】", "【White Rabbit】", "【Alice】", "【Alice】"]
+
+
+@pytest.mark.unit
 def test_extract_without_unwrap_keeps_breaks():
     _, lines, _ = extract(sample(), unwrap=False)
     texts = [t.text for t in lines]
