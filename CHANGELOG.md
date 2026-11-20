@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **System-NNN**: New `systemnnn-xtx` handler for the `.xtx` lists in `spt/` and `nya/` (`namecol.xtx`, `charaname.xtx`, `selist.xtx` …). Each Japanese entry is extracted on its own. Spaces and commas in a translation are made full-width so the entry stays one item for the engine, and entries over the engine's 127-byte limit are rejected.
+
 ### Fixed
 
 - **BLACKRAINBOW**: Each speaker display name is now extracted once per script instead of once per line of dialogue.
