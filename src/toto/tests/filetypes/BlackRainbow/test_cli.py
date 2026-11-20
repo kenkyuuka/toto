@@ -88,3 +88,26 @@ def test_bad_key_is_a_usage_error(tmp_path):
     )
     assert result.exit_code == 2
     assert "--key" in result.output
+
+
+@pytest.mark.integration
+def test_omegat_padding_leaves_untranslated_scripts_unchanged(tmp_path):
+    """OmegaT pads segments with a leading space; untranslated messages must come back byte-identical."""
+    src, workpath, transdir, outpath = _dirs(tmp_path)
+    original = build(
+        [
+            message(0, "アリスはうさぎの穴に落ちていった。", key=NEW_KEY),
+            speech(1, "アリス", ["「まあ！」"], key=NEW_KEY),
+        ]
+    )
+    (src / "rabbit.spt").write_bytes(original)
+    common = ["--workpath", str(workpath), "--filetype", "blackrainbow"]
+    runner = CliRunner()
+    _run(runner, "extract", str(src), "--outpath", str(transdir), *common)
+
+    (trans_file,) = transdir.glob("*.trans*.txt")
+    padded = [f" {line}" for line in trans_file.read_text(encoding="utf_8").splitlines()]
+    trans_file.write_text("\n".join(padded) + "\n", encoding="utf_8")
+
+    _run(runner, "insert", str(transdir), "--outpath", str(outpath), *common)
+    assert (outpath / "rabbit.spt").read_bytes() == original
