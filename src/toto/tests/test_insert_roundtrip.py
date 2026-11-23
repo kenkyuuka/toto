@@ -3,6 +3,7 @@
 import pytest
 from click.testing import CliRunner
 
+from toto.tests.test_po_output import FIXTURES, _copy_txt, _extract, _insert, _outputs
 from toto.toto import cli
 
 SCRIPT_LINES = [
@@ -70,3 +71,40 @@ def test_unchanged_roundtrip_short_lines_with_width(tmp_path):
     """Lines that fit within --width are inserted without the trans file's line terminator."""
     data = '\r\n'.join([*SCRIPT_LINES, '']).encode('ascii')
     assert _roundtrip(tmp_path, data, ['--width', '200', '--codec', 'ascii']) == data
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize('name', FIXTURES)
+def test_missing_translation_files_keep_source_text(tmp_path, name):
+    """A script without translation files is written as if every line were left untranslated."""
+    filetype, txt_base = _extract(tmp_path, name, 'txt')
+    _copy_txt(txt_base)
+    _insert(filetype, txt_base)
+
+    (txt_base / 'target').rename(tmp_path / 'unused')
+    (txt_base / 'target').mkdir()
+    (txt_base / 'output').rename(tmp_path / 'expected')
+    result = _insert(filetype, txt_base)
+
+    assert _outputs(txt_base) == {
+        p.relative_to(tmp_path / 'expected'): p.read_bytes()
+        for p in sorted((tmp_path / 'expected').rglob('*'))
+        if p.is_file()
+    }
+    assert 'no translations' in result.output
+
+
+@pytest.mark.integration
+def test_missing_later_batch_keeps_source_text(tmp_path):
+    """Lines in a missing batch keep their source text; earlier batches are still applied."""
+    lines = [f'Alice counted tart {i}.' for i in range(10002)]
+    fixture = ('kirikiri', {'tarts.ks': '\n'.join([*lines, '']).encode('ascii')})
+    filetype, base = _extract(tmp_path, 'tarts', 'txt', fixture)
+    (base / 'target').mkdir()
+    first = (base / 'source' / 'tarts.ks.trans000.txt').read_text(encoding='utf_8')
+    (base / 'target' / 'tarts.ks.trans000.txt').write_text(first.replace('Alice', 'Alicia'), encoding='utf_8')
+    _insert(filetype, base)
+    out = (base / 'output' / 'tarts.ks').read_text(encoding='ascii').split('\n')
+    assert out[0] == 'Alicia counted tart 0.'
+    assert out[9999] == 'Alicia counted tart 9999.'
+    assert out[10000:] == ['Alice counted tart 10000.', 'Alice counted tart 10001.', '']

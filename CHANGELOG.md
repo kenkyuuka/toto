@@ -8,6 +8,10 @@
 - PO entries carry a `#. Speaker: <name>` comment, shown in OmegaT's Comments pane, for dialogue in the `advhd`, `ai6win`, `blackrainbow`, `dxlib` (unwrapped), `mgos` and `systemnnn` handlers.
 - **AI6WIN**: New `ai6win` handler for AI6WIN `.mes` scripts (elf and Silky's; tested with 麻呂の患者はガテン系 1–3), as unpacked from `mes.arc` by tamago 1.7 or later. Extracts dialogue, speaker names (once per script, from the `〈name〉：` tag) and choices. Translations can be any length: the script's jumps, choice links and message table are updated to match. Because the engine's own wrapping doesn't suit English, translated dialogue is wrapped on insert (default width 60, counting the name tag) using the engine's line-break instruction. Untranslated text, and dialogue where only the speaker name changed, keeps its original form. Choices are never wrapped.
 
+### Fixed
+
+- `insert` keeps the source text for lines that have no translation file (a script with no `.trans*.txt` files, or a missing later batch) and prints a warning. Previously this crashed with a `KeyError` for most handlers, and the `advhd` and `mgos` handlers wrote `<<<TRANS:n>>>` placeholders into the patched script.
+
 ## [1.2.0] — 2026-11-20
 
 ### Added

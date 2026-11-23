@@ -218,6 +218,17 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
                 with open(inpath / trans_name, encoding='utf_8') as vs:
                     lines = [v.rstrip('\n') for v in vs]
                     tlines.update(dict(zip(list(intrans.keys())[i * 10000 : (i + 1) * 10000], lines, strict=True)))
+            # Lines without a translation (no files, or a missing batch) keep their source text,
+            # as in PO mode. Handlers would otherwise fail, or leave placeholder keys in the output.
+            missing = len(intrans) - len(tlines)
+            if missing:
+                if tlines:
+                    click.echo(
+                        f'Warning: {missing} lines of {rel_path} have no translation; keeping source text.', err=True
+                    )
+                else:
+                    click.echo(f'Warning: no translations found for {rel_path}; keeping source text.', err=True)
+                tlines = {k: tlines[k] if k in tlines else source_text(t) for k, t in intrans.items()}
 
         if skip_identical and tlines:
             all_identical = all(v == intrans[k.strip()].text.replace('\n', '\\n') for k, v in tlines.items())

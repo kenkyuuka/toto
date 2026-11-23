@@ -55,9 +55,9 @@ def _write_sources(src, files):
         (src / rel).write_bytes(data)
 
 
-def _extract(tmp_path, name, output_format):
-    """Extract fixture *name* in *output_format*; returns (filetype, base directory)."""
-    filetype, files = FIXTURES[name]
+def _extract(tmp_path, name, output_format, fixture=None):
+    """Extract fixture *name* (or *fixture*) in *output_format*; returns (filetype, base directory)."""
+    filetype, files = fixture or FIXTURES[name]
     base = tmp_path / output_format
     _write_sources(base / 'src', files)
     _run(
