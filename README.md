@@ -52,6 +52,8 @@ Options:
 
 With `--output-format po`, each string becomes a PO entry whose `msgctxt` is its placeholder key (so `insert` matches translations by key, not by position) and whose `msgid` is exactly the line the txt output would contain. Translation memories made with txt files therefore still match after switching formats.
 
+Where the handler knows who is speaking, the entry carries a `#. Speaker: <name>` comment, which OmegaT shows in its Comments pane without making it part of the text to translate. Speakers are known for `advhd`, `ai6win`, `blackrainbow`, `dxlib` (with `--unwrap`, the default), `mgos` and `systemnnn`.
+
 In OmegaT, turn on the PO filter's "Skip PO header" option; otherwise the header shows up as two segments to translate. To switch an existing project to PO, re-extract with `--output-format po` and delete the old `.trans*.txt` files from both `source/` and `target/`: `insert` stops with an error if it finds both formats for one script.
 
 ### Insert

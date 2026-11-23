@@ -1,5 +1,6 @@
 """Tests for AdvHD WS2 format handler."""
 
+import re
 import struct
 from io import BytesIO
 
@@ -444,3 +445,33 @@ class TestEdgeCases:
         # Only the name should be extracted, not the %K-only dialogue
         assert len(textlines) == 1
         assert textlines[0].text == 'テスト'
+
+
+# ----------------------------------------------------------------- speakers --
+
+
+@pytest.mark.unit
+def test_speaker_applies_to_next_message_only():
+    data = (
+        _make_display_name('アリス')
+        + _make_dialogue(0, '「ここはどこかしら？」%K')
+        + _make_dialogue(1, '森は静まりかえっていた。%K%P')
+        + _make_display_name('白うさぎ')
+        + _make_dialogue(2, '「遅刻だ！」%K')
+        + _make_file_end()
+    )
+    _, textlines, _ = extract(data)
+    assert [(t.text, t.speaker) for t in textlines] == [
+        ('アリス', None),
+        ('「ここはどこかしら？」', 'アリス'),
+        ('森は静まりかえっていた。', None),
+        ('白うさぎ', None),
+        ('「遅刻だ！」', '白うさぎ'),
+    ]
+
+
+@pytest.mark.unit
+def test_speaker_kept_when_name_is_ignored():
+    data = _make_display_name('チェシャ猫') + _make_dialogue(0, '「にやにや」%K') + _make_file_end()
+    _, textlines, _ = AdvHdWs2.extract_lines(BytesIO(data), ignore_patterns=[re.compile('猫')])
+    assert [(t.text, t.speaker) for t in textlines] == [('「にやにや」', 'チェシャ猫')]

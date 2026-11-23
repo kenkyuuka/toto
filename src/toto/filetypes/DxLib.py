@@ -311,6 +311,34 @@ class DxLib(TranslatableFile):
             _decode(script.strings[r.string]) for r in script.records[message.start : message.stop] if r.op == OP_TEXT
         ]
 
+    @staticmethod
+    def _message_name_record(records, message):
+        """The name record shown with *message*, or None for narration.
+
+        The name comes before the message, possibly separated from it by voice, comment
+        and blank records.
+        """
+        i = message.start - 1
+        while i >= 0 and records[i].op in (OP_VOICE, OP_COMMENT, OP_BLANK):
+            i -= 1
+        if i >= 0 and records[i].op == OP_NAME:
+            return records[i]
+        return None
+
+    @classmethod
+    def _speaker(cls, script, message):
+        """The display name of *message*'s speaker, without its 【】 brackets, or None."""
+        record = cls._message_name_record(script.records, message)
+        if record is None:
+            return None
+        try:
+            name = cleanup_text(_decode(script.strings[record.string]))
+        except UnicodeDecodeError:
+            return None
+        if len(name) > 2 and name[0] == '【' and name[-1] == '】':
+            name = name[1:-1]
+        return name or None
+
     @classmethod
     def _extract_unwrapped(cls, script, update_body_size, ignore_patterns):
         messages = find_messages(script.records)
@@ -318,6 +346,7 @@ class DxLib(TranslatableFile):
         # names, menu options) that first appear before it. The compiler numbers
         # strings by first use, so a string index is a good proxy for its position.
         found = []  # (kind, ident, text, raw byte strings, sort position)
+        speakers = {}  # message index -> speaker name
         message_strings = set()
         for n, m in enumerate(messages):
             text_records = [r for r in script.records[m.start : m.stop] if r.op == OP_TEXT]
@@ -335,6 +364,8 @@ class DxLib(TranslatableFile):
             if should_translate(joined) and not cls._should_ignore(joined, ignore_patterns):
                 raws = [script.strings[r.string] for r in text_records]
                 found.append(('message', n, joined, raws, text_records[0].string))
+                # Read the name now: standalone strings are replaced by keys further down.
+                speakers[n] = cls._speaker(script, m)
         standalone = []
         for i, raw in enumerate(script.strings):
             if i in message_strings or not raw:
@@ -363,7 +394,8 @@ class DxLib(TranslatableFile):
         raws = []
         for line_index, (kind, ident, text, item_raws, _) in enumerate(ordered):
             key = f'<<<TRANS:{line_index}>>>'
-            textlines.append(TextLine(key, cleanup_text(text), b''))
+            speaker = speakers.get(ident) if kind == 'message' else None
+            textlines.append(TextLine(key, cleanup_text(text), b'', speaker))
             raws.extend(item_raws)
             if kind == 'message':
                 message_keys[ident] = key
@@ -465,12 +497,7 @@ class DxLib(TranslatableFile):
             pages = [lines]
             if len(lines) > cls.lines_per_page:
                 logger.warning('Text before a non-click record needs %d lines: %r', len(lines), text)
-        name = None
-        i = message.start - 1
-        while i >= 0 and records[i].op in (OP_VOICE, OP_COMMENT, OP_BLANK):
-            i -= 1
-        if i >= 0 and records[i].op == OP_NAME:
-            name = records[i]
+        name = cls._message_name_record(records, message)
 
         new = []
         k = 0

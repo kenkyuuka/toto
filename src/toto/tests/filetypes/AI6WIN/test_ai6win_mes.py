@@ -5,6 +5,7 @@ labels, so tests can check that every jump, choice link and header entry still p
 the same instruction after text changes length.
 """
 
+import re
 import struct
 from io import BytesIO
 
@@ -520,3 +521,30 @@ def test_get_paths(tmp_path):
         "main.mes",
         "stage/stage00.mes",
     ]
+
+
+# --------------------------------------------------------------------------- #
+# Speakers
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.unit
+def test_bodies_get_speaker_from_their_name_tag():
+    _, lines, _ = extract(sample())
+    assert [(t.text, t.speaker) for t in lines] == [
+        (NARRATION, None),
+        (ALICE, None),
+        ("白ウサギを見なかった？", ALICE),
+        (RABBIT, None),
+        ("大変だ、遅刻しちゃう！", RABBIT),
+        ("待ってちょうだい！", ALICE),
+        (OPTIONS[0], None),
+        (OPTIONS[1], None),
+    ]
+
+
+@pytest.mark.unit
+def test_speaker_without_padding_and_kept_when_name_ignored():
+    data, _ = assemble([("message",), ("str", "〈 チェシャ猫 〉：にやにや"), *WAIT])
+    _, lines, _ = extract(data, ignore_patterns=[re.compile("猫")])
+    assert [(t.text, t.speaker) for t in lines] == [("にやにや", "チェシャ猫")]

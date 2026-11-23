@@ -307,3 +307,12 @@ def test_insert_reads_shelf_from_three_field_textline(tmp_path, monkeypatch):
 def test_po_text_helper_reads_back():
     text = _po_text([('k', 'a "b"', 'c\\n')])
     assert [(e.msgctxt, e.msgid, e.msgstr) for e in read_po(io.StringIO(text))] == [('k', 'a "b"', 'c\\n')]
+
+
+@pytest.mark.integration
+def test_speaker_comment_in_po(tmp_path):
+    _, base = _extract(tmp_path, 'dxlib', 'po')
+    text = (base / 'source' / 'STORY01.po').read_text(encoding='utf_8')
+    entry = '#. Speaker: アリス\nmsgctxt "<<<TRANS:1>>>"\nmsgid "「白うさぎさん、そんなに急いでどこへ行くの？」"\n'
+    assert entry in text
+    assert text.count('#. Speaker:') == 1

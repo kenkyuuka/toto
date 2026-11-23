@@ -224,11 +224,11 @@ class BlackRainbowSpt(TranslatableFile):
         raws = []
         name_keys = {}  # display name -> key; each name is exported once per file
 
-        def export(text, raw):
+        def export(text, raw, speaker=None):
             if not text or not should_translate(text) or cls._should_ignore(text, ignore_patterns):
                 return None
             k = f'<<<TRANS:{len(textlines)}>>>'
-            textlines.append(TextLine(k, text, b''))
+            textlines.append(TextLine(k, text, b'', speaker))
             raws.append(raw)
             return k
 
@@ -258,7 +258,8 @@ class BlackRainbowSpt(TranslatableFile):
                 if body is not None:
                     lines = body.split(CRLF)
                     item['indent'] = uses_indent(lines)
-                    item['body'] = export(join_lines(lines) if unwrap else '\n'.join(lines), m.text)
+                    body_text = join_lines(lines) if unwrap else '\n'.join(lines)
+                    item['body'] = export(body_text, m.text, (display.strip(ASCII_SPACE) or None) if display else None)
                 items.append(item)
                 out.append((op, m.to_bytes()))
                 continue

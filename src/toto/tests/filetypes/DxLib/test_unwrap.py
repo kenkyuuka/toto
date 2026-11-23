@@ -418,3 +418,57 @@ class TestDefaults:
     @pytest.mark.unit
     def test_base_default_width(self):
         assert TranslatableFile.default_width == 60
+
+
+class TestSpeaker:
+    RABBIT = "【白うさぎ】"
+    LATE = "「遅刻だ、遅刻だ！」"
+    LATER = "「公爵夫人がお怒りだ！」"
+
+    @staticmethod
+    def speakers(data, **kwargs):
+        _, textlines, _ = DxLib.extract_lines(BytesIO(data), **kwargs)
+        return [(t.text, t.speaker) for t in textlines]
+
+    @pytest.mark.unit
+    def test_name_before_voice(self):
+        """The name record is found across the voice record before the message."""
+        assert self.speakers(dialogue_script()[0])[:3] == [(ALICE, None), (JOINED, "アリス"), (NARR, None)]
+
+    @pytest.mark.unit
+    def test_repeated_speaker_without_repeated_name_line(self):
+        """Every message gets its speaker, though the name string is extracted only once."""
+        strings = [self.RABBIT, self.LATE, self.LATER, NARR]
+        items = [
+            (0x0D, self.RABBIT),
+            text(self.LATE),
+            (EOL[0],),
+            (CLICK[0],),
+            (0x0D, self.RABBIT),
+            (0x02, b"\x00"),
+            (0x03,),
+            text(self.LATER),
+            (EOL[0],),
+            (CLICK[0],),
+            text(NARR),
+            (EOL[0],),
+            (CLICK[0],),
+        ]
+        assert self.speakers(assemble(items, strings)) == [
+            (self.RABBIT, None),
+            (self.LATE, "白うさぎ"),
+            (self.LATER, "白うさぎ"),
+            (NARR, None),
+        ]
+
+    @pytest.mark.unit
+    def test_name_without_brackets(self):
+        items = [(0x0D, "チェシャ猫"), text(self.LATE), (EOL[0],), (CLICK[0],)]
+        assert self.speakers(assemble(items, ["チェシャ猫", self.LATE])) == [
+            ("チェシャ猫", None),
+            (self.LATE, "チェシャ猫"),
+        ]
+
+    @pytest.mark.unit
+    def test_no_unwrap_has_no_speakers(self):
+        assert all(speaker is None for _, speaker in self.speakers(dialogue_script()[0], unwrap=False))

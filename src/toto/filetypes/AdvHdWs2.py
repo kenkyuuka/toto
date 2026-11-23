@@ -475,6 +475,7 @@ def _parse_file(data, ignore_patterns=()):
     ptr_positions = []  # file offsets of pointer operands (pre-chunking)
     line_index = 0
     raw_start = 0  # start of the current uncommitted raw region
+    speaker = None  # set by SetDisplayName for the next DisplayMessage only
 
     def _flush_raw(end):
         """Emit raw bytes from raw_start..end and assign pending pointers."""
@@ -490,13 +491,13 @@ def _parse_file(data, ignore_patterns=()):
                 fixups.append((chunk_idx, pp - raw_start))
         raw_start = end
 
-    def _emit_text(text_type, string_start, string_end, text, eol):
+    def _emit_text(text_type, string_start, string_end, text, eol, speaker=None):
         nonlocal raw_start, line_index
         _flush_raw(string_start)
         key = f'<<<TRANS:{line_index}>>>'
         orig_byte_len = string_end - string_start
         chunks.append((string_start, text_type, (key, eol, orig_byte_len)))
-        textlines.append(TextLine(key, text, eol))
+        textlines.append(TextLine(key, text, eol, speaker))
         line_index += 1
         raw_start = string_end
 
@@ -524,7 +525,8 @@ def _parse_file(data, ignore_patterns=()):
                 text = dialogue_text
 
             if text and not TranslatableFile._should_ignore(text, ignore_patterns):
-                _emit_text(_DIALOGUE, dialogue_start, dialogue_end, text, eol)
+                _emit_text(_DIALOGUE, dialogue_start, dialogue_end, text, eol, speaker)
+            speaker = None
 
         elif opcode == 0x15:  # SetDisplayName
             name_start = pos
@@ -535,6 +537,7 @@ def _parse_file(data, ignore_patterns=()):
 
             if name_text.startswith('%LF'):
                 name = name_text[3:]
+                speaker = name or None
                 if name and not TranslatableFile._should_ignore(name, ignore_patterns):
                     _emit_text(_NAME, name_start, name_end, name, '')
 

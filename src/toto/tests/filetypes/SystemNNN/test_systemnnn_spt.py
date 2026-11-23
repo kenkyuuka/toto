@@ -6,6 +6,7 @@ message, string and trailing data tables.
 """
 
 import logging
+import re
 import struct
 from io import BytesIO
 
@@ -292,3 +293,23 @@ def test_cp932_variant_is_restored():
     out = roundtrip(build([msg], ["★トップ"]), edit=lambda t: '"Rabbit!"' if t.startswith("「") else t)
     plain = crypt(out)
     assert read_table(plain, "messages")[0].startswith(name + b'\r\n"Rabbit!"\0')
+
+
+@pytest.mark.unit
+def test_speakers():
+    """Bodies get their speaker; extra name lines over one line of speech are listed too."""
+    _, lines, _ = extract(build([NARRATION, AGAIN, SHORT, DUET], []))
+    assert [(t.text, t.speaker) for t in lines] == [
+        ("アリスはうさぎの穴に落ちていった。どこまでも、どこまでも。", None),
+        ("アリス", None),
+        ("「まあ！」", "アリス"),
+        ("白ウサギ", None),
+        ("「遅刻だ、遅刻だ！」", "白ウサギ"),
+        ("白ウサギ「お茶会へ！」", "アリス / 白ウサギ"),
+    ]
+
+
+@pytest.mark.unit
+def test_speaker_kept_when_name_ignored():
+    _, lines, _ = extract(build([SHORT], []), ignore_patterns=[re.compile("ウサギ$")])
+    assert [(t.text, t.speaker) for t in lines] == [("「遅刻だ、遅刻だ！」", "白ウサギ")]

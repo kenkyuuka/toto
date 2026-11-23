@@ -160,12 +160,12 @@ class Mgos(TranslatableFile):
                         direction = quote_match.group(2)  # None if no direction
 
                         dialogue_key = f'<<<TRANS:{line_index}>>>'
-                        textlines.append(TextLine(dialogue_key, dialogue_content, b''))
+                        textlines.append(TextLine(dialogue_key, dialogue_content, b'', name))
                         line_index += 1
 
                         if direction is not None:
                             direction_key = f'<<<TRANS:{line_index}>>>'
-                            textlines.append(TextLine(direction_key, direction, b''))
+                            textlines.append(TextLine(direction_key, direction, b'', name))
                             line_index += 1
                             split_data = f'{name_key}\x00{dialogue_key}\x00{direction_key}'.encode('ascii')
                         else:
@@ -173,7 +173,7 @@ class Mgos(TranslatableFile):
                     else:
                         # Dialogue without 「」 — extract as-is
                         dialogue_key = f'<<<TRANS:{line_index}>>>'
-                        textlines.append(TextLine(dialogue_key, dialogue, b''))
+                        textlines.append(TextLine(dialogue_key, dialogue, b'', name))
                         line_index += 1
                         split_data = f'{name_key}\x00{dialogue_key}'.encode('ascii')
                         string_records.append((original_offset, FLAG_SPLIT_UNQUOTED, split_data))

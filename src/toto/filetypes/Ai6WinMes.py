@@ -258,11 +258,11 @@ class Ai6WinMes(TranslatableFile):
         textlines = []
         names = {}
 
-        def export(text):
+        def export(text, speaker=None):
             if not text or not should_translate(text) or cls._should_ignore(text, ignore_patterns):
                 return None
             key = f'<<<TRANS:{len(textlines)}>>>'
-            textlines.append(TextLine(key, text, b''))
+            textlines.append(TextLine(key, text, b'', speaker))
             return key
 
         items = []
@@ -274,7 +274,8 @@ class Ai6WinMes(TranslatableFile):
                 if name not in names:
                     names[name] = export(name)
                 item['name'] = names[name]
-            item['body'] = export(body)
+            speaker = (name.strip(ASCII_SPACE) or None) if name is not None else None
+            item['body'] = export(body, speaker)
             if item.get('name') or item['body']:
                 items.append(item)
 

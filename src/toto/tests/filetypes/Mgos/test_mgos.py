@@ -851,3 +851,41 @@ class TestMgosBytecodeWalker:
 
         with pytest.raises(ValueError, match="exceeds uint8 range"):
             Mgos.insert_lines(intermediate, translation_dict)
+
+
+def _build_script(texts):
+    """A synthetic .o file referencing each of *texts* once, in order."""
+    entry_blobs = [_make_string_entry(t.encode('cp932')) for t in texts]
+    filler = bytes([0x93, 0x27, 0x00, 0xC0, 0x95] * 4)
+    bytecode = bytearray(filler)
+    offset = len(filler) + 5 * len(entry_blobs)
+    for blob in entry_blobs:
+        bytecode.append(0x02)
+        bytecode.extend(struct.pack('<I', offset))
+        offset += len(blob)
+    return bytes(bytecode) + b''.join(entry_blobs)
+
+
+class TestMgosSpeaker:
+    def test_dialogue_and_direction_get_speaker(self):
+        _, textlines, _ = Mgos.extract_lines(BytesIO(make_mgos_direction_script()))
+        assert [(t.text, t.speaker) for t in textlines] == [
+            ('ちはや', None),
+            ('おはよう', 'ちはや'),
+            ('元気に', 'ちはや'),
+            ('あかね', None),
+            ('ちーちゃん？', 'あかね'),
+            ('？？？で', 'あかね'),
+            ('（うーん……）', 'ちはや'),
+            ('いい天気だね', 'ちはや'),
+            ('朝の光が差し込む。', None),
+        ]
+
+    def test_unquoted_dialogue_gets_speaker(self):
+        data = _build_script(['アリス　まあ、なんて大きな扉', '　扉は小さかった。'])
+        _, textlines, _ = Mgos.extract_lines(BytesIO(data))
+        assert [(t.text, t.speaker) for t in textlines] == [
+            ('アリス', None),
+            ('まあ、なんて大きな扉', 'アリス'),
+            ('扉は小さかった。', None),
+        ]
