@@ -6,6 +6,7 @@ from importlib.metadata import entry_points
 
 import click
 
+from .po import PoError, read_po, source_text, write_po
 from .util import TextLine
 
 filetype_plugins = entry_points(group='toto.filetypes')
@@ -46,14 +47,25 @@ def cli():
     help='Hex encryption key for formats that need one (BLACKRAINBOW message key). '
     'By default the handler tries the keys it knows.',
 )
-def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None, key=None):
+@click.option(
+    '--output-format',
+    type=click.Choice(['txt', 'po'], case_sensitive=False),
+    default='txt',
+    help='Format of the text to translate: txt (one line per string, in batches of 10000) or po '
+    '(one gettext PO file per script, with metadata such as the speaker as comments).',
+)
+def extract(
+    paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None, key=None, output_format='txt'
+):
     """Extract lines from script files into a single file.
 
     The files given in paths will be scanned for lines that look like
     translatable text. These lines will be extracted from the source
     files, and new intermediate files will be saved to workpath with
     tokens replacing the translatable lines. The lines to be translated
-    will be saved in batches of 10000 to files in outpath.
+    are saved to outpath: with --output-format txt, in batches of 10000
+    lines to <script>.transNNN.txt; with --output-format po, to one
+    <script>.po file per script.
     """
 
     ignore_patterns = []
@@ -120,13 +132,20 @@ def extract(paths, outpath, workpath, codec, filetype=None, ignore_line_regex=()
             shelf['metadata'] = metadata
 
         (outpath / rel_path).parent.mkdir(parents=True, exist_ok=True)
+        if output_format.lower() == 'po':
+            # Like the txt output, a script with nothing to translate gets no file.
+            if textlines:
+                po_name = str(rel_path) + '.po'
+                with open(outpath / po_name, 'w', encoding='utf_8', errors='namereplace', newline='\n') as f:
+                    write_po(f, textlines)
+            continue
         for i in range(10**3):
             if 10000 * i >= len(textlines):
                 break
             trans_name = str(rel_path) + f'.trans{i:03d}.txt'
             with open(outpath / trans_name, 'w', encoding='utf_8', errors='namereplace') as f:
                 for t in textlines[i * 10000 : (i + 1) * 10000]:
-                    f.write(t.text.replace('\n', '\\n') + '\n')
+                    f.write(source_text(t) + '\n')
 
 
 @cli.command()
@@ -162,6 +181,9 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
     A list of translated lines given by inpath will be inserted into the
     correct location in the files in workpath, generating a translated
     version of the original scripts in outpath.
+
+    Translations are read from <script>.po if it exists (as written by
+    extract --output-format po), and from <script>.transNNN.txt otherwise.
     """
     if filetype.lower() is None:
         raise RuntimeError("File type must be specified.")
@@ -179,14 +201,23 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
             intrans = shelf['lines']
             metadata = shelf.get('metadata', {})
 
-        tlines = {}
-        for i in range(10**3):
-            trans_name = str(rel_path) + f'.trans{i:03d}.txt'
-            if not os.path.exists(inpath / trans_name):
-                break
-            with open(inpath / trans_name, encoding='utf_8') as vs:
-                lines = [v.rstrip('\n') for v in vs]
-                tlines.update(dict(zip(list(intrans.keys())[i * 10000 : (i + 1) * 10000], lines, strict=True)))
+        po_path = inpath / (str(rel_path) + '.po')
+        txt_path = inpath / (str(rel_path) + '.trans000.txt')
+        if po_path.exists():
+            if txt_path.exists():
+                raise click.ClickException(
+                    f'Found both {po_path} and {txt_path}; remove the translations in the format no longer used.'
+                )
+            tlines = _read_po_translations(po_path, intrans)
+        else:
+            tlines = {}
+            for i in range(10**3):
+                trans_name = str(rel_path) + f'.trans{i:03d}.txt'
+                if not os.path.exists(inpath / trans_name):
+                    break
+                with open(inpath / trans_name, encoding='utf_8') as vs:
+                    lines = [v.rstrip('\n') for v in vs]
+                    tlines.update(dict(zip(list(intrans.keys())[i * 10000 : (i + 1) * 10000], lines, strict=True)))
 
         if skip_identical and tlines:
             all_identical = all(v == intrans[k.strip()].text.replace('\n', '\\n') for k, v in tlines.items())
@@ -225,3 +256,28 @@ def insert(inpath, outpath, workpath, width, wrap, codec, filetype, skip_identic
         (outpath / rel_path).parent.mkdir(parents=True, exist_ok=True)
         with open(outpath / rel_path, 'wb') as f:
             f.write(output_file.read())
+
+
+def _read_po_translations(po_path, intrans):
+    """Translations from the PO file *po_path*, as the txt path builds them: key -> escaped text.
+
+    Entries are matched to the shelf's lines by ``msgctxt``. A line with no entry, or an entry
+    with an empty ``msgstr``, keeps its source text.
+    """
+    try:
+        with open(po_path, encoding='utf_8') as f:
+            entries = read_po(f)
+    except PoError as e:
+        raise click.ClickException(f'{po_path}: {e}') from None
+
+    found = {}
+    for entry in entries:
+        if entry.msgctxt not in intrans:
+            click.echo(f'Warning: {po_path}:{entry.line}: unknown key {entry.msgctxt!r}; entry ignored.', err=True)
+            continue
+        if entry.msgctxt in found:
+            raise click.ClickException(f'{po_path}:{entry.line}: duplicate key {entry.msgctxt!r}')
+        found[entry.msgctxt] = entry.msgstr or entry.msgid
+
+    # Build in shelf order, as the txt path does.
+    return {k: found[k] if k in found else source_text(t) for k, t in intrans.items()}

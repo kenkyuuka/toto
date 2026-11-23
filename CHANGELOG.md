@@ -4,6 +4,7 @@
 
 ### Added
 
+- `extract --output-format po` writes one gettext PO file per script instead of `.trans*.txt` batches. Each entry is keyed by `msgctxt`, so `insert` matches translations by key rather than by line position; the `msgid` is the same text as the txt line, so existing translation memories still match. `insert` reads `<script>.po` when present (an empty `msgstr` keeps the source text) and stops with an error if a script has both PO and txt translations.
 - **AI6WIN**: New `ai6win` handler for AI6WIN `.mes` scripts (elf and Silky's; tested with 麻呂の患者はガテン系 1–3), as unpacked from `mes.arc` by tamago 1.7 or later. Extracts dialogue, speaker names (once per script, from the `〈name〉：` tag) and choices. Translations can be any length: the script's jumps, choice links and message table are updated to match. Because the engine's own wrapping doesn't suit English, translated dialogue is wrapped on insert (default width 60, counting the name tag) using the engine's line-break instruction. Untranslated text, and dialogue where only the speaker name changed, keeps its original form. Choices are never wrapped.
 
 ## [1.2.0] — 2026-11-20
