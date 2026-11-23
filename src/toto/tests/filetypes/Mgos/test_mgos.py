@@ -3,6 +3,8 @@
 import struct
 from io import BytesIO
 
+import pytest
+
 from toto.filetypes.Mgos import Mgos
 from toto.util import TextLine
 
@@ -882,10 +884,64 @@ class TestMgosSpeaker:
         ]
 
     def test_unquoted_dialogue_gets_speaker(self):
-        data = _build_script(['アリス　まあ、なんて大きな扉', '　扉は小さかった。'])
+        data = _build_script(['アリス　「あら？」', 'アリス　まあ、なんて大きな扉', '　扉は小さかった。'])
         _, textlines, _ = Mgos.extract_lines(BytesIO(data))
         assert [(t.text, t.speaker) for t in textlines] == [
             ('アリス', None),
+            ('あら？', 'アリス'),
             ('まあ、なんて大きな扉', 'アリス'),
             ('扉は小さかった。', None),
+        ]
+
+
+class TestMgosSpeakerNames:
+    """Only strings that start with a plausible speaker name are split into name and dialogue."""
+
+    @staticmethod
+    def lines(texts):
+        original = _build_script(texts)
+        intermediate, textlines, _ = Mgos.extract_lines(BytesIO(original))
+        output = Mgos.insert_lines(intermediate, {t.key: t for t in textlines}).read()
+        assert output == original
+        return [(t.text, t.speaker) for t in textlines]
+
+    def test_unquoted_line_with_unknown_name_is_not_split(self):
+        """Key labels, captions and the like look like name　text but nobody speaks them."""
+        assert self.lines(['F1　ヘルプ表示', 'ＥＮＤ　Ｎｏ０３９Ａ', 'チェシャ猫　「にやにや」']) == [
+            ('F1　ヘルプ表示', None),
+            ('ＥＮＤ　Ｎｏ０３９Ａ', None),
+            ('チェシャ猫', None),
+            ('にやにや', 'チェシャ猫'),
+        ]
+
+    def test_unquoted_line_by_speaker_later_in_file_is_split(self):
+        assert self.lines(['アリス　まあ', 'アリス　「あら？」']) == [
+            ('アリス', None),
+            ('まあ', 'アリス'),
+            ('あら？', 'アリス'),
+        ]
+
+    @pytest.mark.parametrize(
+        'text',
+        [
+            '//　白ウサギは穴に飛び込んだ。',
+            '//アリス　「あら？」',
+            '////　鋭い質問。',
+            '§服装＝ドレス）　アリスは青いドレスを着ていた。',
+            '§観客＝帽子屋）アリス　「お茶をどうぞ」',
+            '§観客≠帽子屋）アリス　「あら？」',
+            'A0)アリス　「どちらへ？」',
+            '//♪ＳＥ　扉　開く',
+        ],
+    )
+    def test_script_markup_is_not_a_name(self, text):
+        """Comment, condition and label prefixes stay with the line instead of becoming a name."""
+        assert self.lines(['アリス　「あら？」', text])[2:] == [(text, None)]
+
+    def test_names_with_fullwidth_parentheses_are_names(self):
+        assert self.lines(['かなえ（過去）　「お茶会よ」', '看護婦Ａ　「どうぞ」']) == [
+            ('かなえ（過去）', None),
+            ('お茶会よ', 'かなえ（過去）'),
+            ('看護婦Ａ', None),
+            ('どうぞ', '看護婦Ａ'),
         ]

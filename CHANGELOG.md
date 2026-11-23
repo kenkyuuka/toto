@@ -11,6 +11,7 @@
 ### Fixed
 
 - `insert` keeps the source text for lines that have no translation file (a script with no `.trans*.txt` files, or a missing later batch) and prints a warning. Previously this crashed with a `KeyError` for most handlers, and the `advhd` and `mgos` handlers wrote `<<<TRANS:n>>>` placeholders into the patched script.
+- **mgos**: Lines are only split into a speaker name and dialogue when they start with a real name. Script markup in front of a name (`//` comments, `§服装＝制服）`-style conditions, `A0)` labels) was taken as part of the name, so translators were asked to translate it; and unquoted lines such as key labels (`F1　ヘルプ表示`) and captions were split as if spoken. Such lines are now extracted whole. Text without 「」 is still split when its name speaks quoted lines elsewhere in the same script. Re-extracting changes these lines, so their earlier translations need to be redone.
 
 ## [1.2.0] — 2026-11-20
 
