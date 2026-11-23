@@ -46,6 +46,15 @@ Options:
 - `--ignore-line-regex` — regex pattern to skip matching lines (repeatable)
 - `--unwrap` — remove inline line breaks from extracted text for re-wrapping on insertion (supported formats: `agsd`, `ai6win`, `blackrainbow`, `dxlib`; on by default for `ai6win`, `blackrainbow` and `dxlib`)
 - `--key` — hex encryption key for formats that need one (`blackrainbow`: the message key; by default the known keys are tried)
+- `--output-format` — `txt` (default): `<script>.transNNN.txt` files with one string per line, in batches of 10000; `po`: one gettext `<script>.po` file per script (see [PO output](#po-output))
+
+#### PO output
+
+With `--output-format po`, each string becomes a PO entry whose `msgctxt` is its placeholder key (so `insert` matches translations by key, not by position) and whose `msgid` is exactly the line the txt output would contain. Translation memories made with txt files therefore still match after switching formats.
+
+Where the handler knows who is speaking, the entry carries a `#. Speaker: <name>` comment, which OmegaT shows in its Comments pane without making it part of the text to translate. Speakers are known for `advhd`, `ai6win`, `blackrainbow`, `dxlib` (with `--unwrap`, the default), `mgos` and `systemnnn`.
+
+In OmegaT, turn on the PO filter's "Skip PO header" option; otherwise the header shows up as two segments to translate. To switch an existing project to PO, re-extract with `--output-format po` and delete the old `.trans*.txt` files from both `source/` and `target/`: `insert` stops with an error if it finds both formats for one script.
 
 ### Insert
 
@@ -64,9 +73,11 @@ Options:
 - `--codec` — force output encoding
 - `--skip-identical` — skip files where all translations match the original
 
+Translations are read from `<script>.po` when it exists and from `<script>.transNNN.txt` otherwise. In a PO file, an entry with an empty `msgstr`, or a string with no entry, keeps its source text; entries whose key the script doesn't have are skipped with a warning.
+
 ## Workflow
 
-1. **Extract** translatable text from original scripts. This produces translation files (plain text, one line per string) and intermediate files with placeholder tokens.
+1. **Extract** translatable text from original scripts. This produces translation files (plain text with one line per string, or PO) and intermediate files with placeholder tokens.
 2. **Translate** the extracted text files — by hand, with MT, or however you like.
 3. **Insert** the translations back. toto substitutes translated text into the intermediate files to produce patched scripts ready for use.
 

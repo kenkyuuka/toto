@@ -1,6 +1,8 @@
 from collections import namedtuple
 
-TextLine = namedtuple('TextLine', ['key', 'text', 'eol'])
+# ``speaker`` is the source-language name of whoever says the line, when the handler knows it.
+# It defaults to None, which also lets shelves pickled with the old 3-field TextLine load.
+TextLine = namedtuple('TextLine', ['key', 'text', 'eol', 'speaker'], defaults=(None,))
 
 
 # --------------------------------------------------------------------------- #

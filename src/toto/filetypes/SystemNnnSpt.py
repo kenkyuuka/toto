@@ -226,11 +226,11 @@ class SystemNnnSpt(TranslatableFile):
         textlines = []
         raws = []
 
-        def export(text, raw):
+        def export(text, raw, speaker=None):
             if not text or not should_translate(text) or cls._should_ignore(text, ignore_patterns):
                 return None
             key = f'<<<TRANS:{len(textlines)}>>>'
-            textlines.append(TextLine(key, text, b''))
+            textlines.append(TextLine(key, text, b'', speaker))
             raws.append(raw)
             return key
 
@@ -252,13 +252,22 @@ class SystemNnnSpt(TranslatableFile):
                 continue
             lines = text.split(CRLF)
             item = {'i': i, 'unwrap': unwrap, 'split': split[i]}
+            speaker = None
             if split[i]:
                 name = lines.pop(0)
                 if name not in names:
                     names[name] = export(name, raw_messages[i].split(CRLF.encode())[0])
                 item['name'] = names[name]
+                # Further name lines (several speakers over one line of speech) stay in the body.
+                extra = []
+                for line in lines[:-1]:
+                    if line not in speakers:
+                        break
+                    extra.append(line)
+                speaker = ' / '.join(n.strip(ASCII_SPACE) for n in [name, *extra] if n.strip(ASCII_SPACE)) or None
             item['indent'] = uses_indent(lines)
-            item['body'] = export(join_lines(lines) if unwrap else '\n'.join(lines), raw_messages[i])
+            body = join_lines(lines) if unwrap else '\n'.join(lines)
+            item['body'] = export(body, raw_messages[i], speaker)
             if item.get('name') or item['body']:
                 items.append(item)
 

@@ -394,3 +394,26 @@ def test_cp932_fixup_preserved():
     trans = {t.key: t._replace(text=t.text + "。") for t in lines}
     out = BlackRainbowSpt.insert_lines(intermediate, trans, width=44, **metadata).read()
     assert ibm in mask(parse_records(out)[0][1][20:], OLD_KEY)
+
+
+@pytest.mark.unit
+def test_speakers_are_display_names():
+    """A body's speaker is the name shown on screen, not the internal one (その他 here)."""
+    _, lines, _ = extract(sample())
+    assert [(t.text, t.speaker) for t in lines] == [
+        ("お茶会", None),
+        ("アリス\n不思議の国へ", None),
+        ("アリスはうさぎの穴に落ちていった。どこまでも、どこまでも。", None),
+        (ALICE, None),
+        (SPEECH, ALICE),
+        (RABBIT, None),
+        ("「ねえ、白ウサギさん、そんなに急いでどこへ行くの？　待ってちょうだい！」", RABBIT),
+        ("ウサギを追う", None),
+        ("お茶会に行く", None),
+    ]
+
+
+@pytest.mark.unit
+def test_speaker_kept_when_name_ignored():
+    _, lines, _ = extract(build([speech(1, RABBIT, [SPEECH])]), ignore_patterns=[re.compile("ウサギ$")])
+    assert [(t.text, t.speaker) for t in lines] == [(SPEECH, RABBIT)]

@@ -4,7 +4,14 @@
 
 ### Added
 
+- `extract --output-format po` writes one gettext PO file per script instead of `.trans*.txt` batches. Each entry is keyed by `msgctxt`, so `insert` matches translations by key rather than by line position; the `msgid` is the same text as the txt line, so existing translation memories still match. `insert` reads `<script>.po` when present (an empty `msgstr` keeps the source text) and stops with an error if a script has both PO and txt translations.
+- PO entries carry a `#. Speaker: <name>` comment, shown in OmegaT's Comments pane, for dialogue in the `advhd`, `ai6win`, `blackrainbow`, `dxlib` (unwrapped), `mgos` and `systemnnn` handlers.
 - **AI6WIN**: New `ai6win` handler for AI6WIN `.mes` scripts (elf and Silky's; tested with 麻呂の患者はガテン系 1–3), as unpacked from `mes.arc` by tamago 1.7 or later. Extracts dialogue, speaker names (once per script, from the `〈name〉：` tag) and choices. Translations can be any length: the script's jumps, choice links and message table are updated to match. Because the engine's own wrapping doesn't suit English, translated dialogue is wrapped on insert (default width 60, counting the name tag) using the engine's line-break instruction. Untranslated text, and dialogue where only the speaker name changed, keeps its original form. Choices are never wrapped.
+
+### Fixed
+
+- `insert` keeps the source text for lines that have no translation file (a script with no `.trans*.txt` files, or a missing later batch) and prints a warning. Previously this crashed with a `KeyError` for most handlers, and the `advhd` and `mgos` handlers wrote `<<<TRANS:n>>>` placeholders into the patched script.
+- **mgos**: Lines are only split into a speaker name and dialogue when they start with a real name. Script markup in front of a name (`//` comments, `§服装＝制服）`-style conditions, `A0)` labels) was taken as part of the name, so translators were asked to translate it; and unquoted lines such as key labels (`F1　ヘルプ表示`) and captions were split as if spoken. Such lines are now extracted whole. Text without 「」 is still split when its name speaks quoted lines elsewhere in the same script. Re-extracting changes these lines, so their earlier translations need to be redone.
 
 ## [1.2.0] — 2026-11-20
 

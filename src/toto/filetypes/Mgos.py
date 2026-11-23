@@ -47,6 +47,19 @@ _NAME_DIALOGUE_RE = re.compile(r'^(\S+)\u3000(.+)$', re.DOTALL)
 # Group 2: direction content (between （ and ）), or None
 _QUOTED_DIALOGUE_RE = re.compile(r'^\u300c(.*)\u300d(?:\uff08(.*)\uff09)?$', re.DOTALL)
 
+# Characters that mark script syntax rather than a name: comments (//), condition prefixes
+# such as §服装＝制服）, labels such as A0), and the commands some games' runners use.
+# Fullwidth parentheses are not included, as names such as 看護婦（新人） use them.
+_NAME_MARKUP_RE = re.compile(r'[/／§)=＝≠<>＜＞○◎●※＠@♪#＃]')
+
+
+def _split_name(text):
+    """Split *text* into ``(name, dialogue)`` if it starts with something that can be a name."""
+    m = _NAME_DIALOGUE_RE.match(text)
+    if m is None or _NAME_MARKUP_RE.search(m.group(1)):
+        return None
+    return m.group(1), m.group(2)
+
 
 class Mgos(TranslatableFile):
     @staticmethod
@@ -126,12 +139,12 @@ class Mgos(TranslatableFile):
         string_records = []
         name_keys = {}  # name text -> TRANS key (for deduplication)
 
+        candidates = []  # (original offset, raw bytes, decoded text or None if not extracted)
         for original_offset, raw_bytes in strings:
             try:
                 text = raw_bytes.decode('cp932')
             except (UnicodeDecodeError, ValueError):
                 text = None
-
             should_extract = (
                 text is not None
                 and len(raw_bytes) > 0
@@ -139,11 +152,22 @@ class Mgos(TranslatableFile):
                 and _JP_CHAR_RE.search(text)
                 and not cls._should_ignore(text, ignore_patterns)
             )
+            candidates.append((original_offset, raw_bytes, text if should_extract else None))
 
-            if should_extract:
-                name_match = _NAME_DIALOGUE_RE.match(text)
-                if name_match:
-                    name, dialogue = name_match.group(1), name_match.group(2)
+        # Text without 「」 after a name is only taken as dialogue when that name speaks quoted
+        # lines somewhere in the file. Otherwise key labels (F1　ヘルプ表示), captions and
+        # similar strings would be split into a name and a line of dialogue.
+        speakers = set()
+        for _, _, text in candidates:
+            split = _split_name(text) if text is not None else None
+            if split and _QUOTED_DIALOGUE_RE.match(split[1]):
+                speakers.add(split[0])
+
+        for original_offset, raw_bytes, text in candidates:
+            if text is not None:
+                split = _split_name(text)
+                if split and split[0] in speakers:
+                    name, dialogue = split
 
                     if name not in name_keys:
                         name_key = f'<<<TRANS:{line_index}>>>'
@@ -160,12 +184,12 @@ class Mgos(TranslatableFile):
                         direction = quote_match.group(2)  # None if no direction
 
                         dialogue_key = f'<<<TRANS:{line_index}>>>'
-                        textlines.append(TextLine(dialogue_key, dialogue_content, b''))
+                        textlines.append(TextLine(dialogue_key, dialogue_content, b'', name))
                         line_index += 1
 
                         if direction is not None:
                             direction_key = f'<<<TRANS:{line_index}>>>'
-                            textlines.append(TextLine(direction_key, direction, b''))
+                            textlines.append(TextLine(direction_key, direction, b'', name))
                             line_index += 1
                             split_data = f'{name_key}\x00{dialogue_key}\x00{direction_key}'.encode('ascii')
                         else:
@@ -173,7 +197,7 @@ class Mgos(TranslatableFile):
                     else:
                         # Dialogue without 「」 — extract as-is
                         dialogue_key = f'<<<TRANS:{line_index}>>>'
-                        textlines.append(TextLine(dialogue_key, dialogue, b''))
+                        textlines.append(TextLine(dialogue_key, dialogue, b'', name))
                         line_index += 1
                         split_data = f'{name_key}\x00{dialogue_key}'.encode('ascii')
                         string_records.append((original_offset, FLAG_SPLIT_UNQUOTED, split_data))
