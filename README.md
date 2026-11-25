@@ -14,6 +14,7 @@ A visual novel script localization tool. toto extracts translatable text from va
 | AdvHD (Willplus) | `advhd` | `.ws2` |
 | ADVDX (BLACKRAINBOW) | `blackrainbow` | `.spt` (unpacked from `*_spt.dat` / `script.dat` with tamago) |
 | AI6WIN (elf, Silky's) | `ai6win` | `.mes` (unpacked from `mes.arc` with tamago ≥ 1.7) |
+| Silky Engine (Silky's Sakura) | `silky` | `.mes` (unpacked from `Script.arc`) |
 
 ## Installation
 

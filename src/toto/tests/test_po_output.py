@@ -17,6 +17,7 @@ from toto.tests.filetypes.Anim.test_anim import make_define_with_brackets
 from toto.tests.filetypes.BlackRainbow.test_blackrainbow_spt import sample as blackrainbow_sample
 from toto.tests.filetypes.DxLib.test_unwrap import dialogue_script
 from toto.tests.filetypes.Mgos.test_mgos import make_mgos_direction_script
+from toto.tests.filetypes.Silky.test_silky_mes import sample as silky_sample
 from toto.tests.filetypes.SystemNNN.test_systemnnn_spt import sample as systemnnn_sample
 from toto.tests.filetypes.SystemNNN.test_systemnnn_xtx import NAMECOL
 from toto.toto import cli
@@ -39,6 +40,7 @@ FIXTURES = {
     'systemnnn': ('systemnnn', {'spt/alice.spt': systemnnn_sample()}),
     'systemnnn-xtx': ('systemnnn-xtx', {'spt/namecol.xtx': NAMECOL}),
     'ai6win': ('ai6win', {'stage/stage00.mes': ai6win_sample()}),
+    'silky': ('silky', {'script/OT_ALICE01.MES': silky_sample()}),
 }
 
 
