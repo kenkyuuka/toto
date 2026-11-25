@@ -112,9 +112,15 @@ def _kag_line(line):
 
 
 class _Group:
-    """Accumulates consecutive [r]-terminated lines into a single translatable unit."""
+    """Accumulates consecutive [r]-terminated lines into a single translatable unit.
 
-    def __init__(self):
+    With *strip_indent*, full-width spaces are removed from the start of every
+    line after the first.  Japanese scripts indent the continuation of a
+    quote with U+3000, which ends up mid-sentence once the lines are joined.
+    """
+
+    def __init__(self, strip_indent=False):
+        self.strip_indent = strip_indent
         self.text = ''
         self.key = None
         self.leading = ''
@@ -133,10 +139,18 @@ class _Group:
         if not self.text:
             self.key = key
             self.leading = leading
-        self.text += text
+            self.text = text
+        else:
+            self.append(text)
         self.ending = ending
         if eol is not None:
             self.eol = eol
+
+    def append(self, text):
+        """Append a continuation line's text to the open group."""
+        if self.strip_indent:
+            text = text.lstrip('\u3000')
+        self.text += text
 
     def flush(self, intermediate_file, textlines, codec, ending=None, eol=None):
         """Emit the accumulated group.
@@ -225,11 +239,26 @@ class KiriKiriScript(TranslatableFile):
         ),
         line_end_macros=r'(?:\[[^\]]+\])+\\?',
         ignore_patterns=(),
+        strip_continuation_indent=False,
         **kwargs,
     ) -> tuple[BytesIO, list[TextLine], dict]:
+        """Extract text lines, joining multi-line messages into one string.
+
+        A text line begins (or continues) a group when it starts with one of
+        *group_starts*; an empty prefix makes every text line do so.  A group
+        also continues through lines ending in ``[r]``, and is closed by any
+        other match of *line_end_macros* or by a blank, command or tag-only
+        line.  An empty *line_end_macros* disables both macro handling and
+        grouping.  With *strip_continuation_indent*, leading full-width
+        spaces are dropped from the second and later lines of a group.
+        """
         intermediate_file = BytesIO()
         textlines: list[TextLine] = []
-        group = _Group()
+
+        def new_group():
+            return _Group(strip_continuation_indent)
+
+        group = new_group()
 
         command_starts = ('*', ';', '@', '//', '{')
         macro_re = re.compile(r'(?P<text>.*?)(?P<eol>' + line_end_macros + ')') if line_end_macros else None
@@ -252,7 +281,7 @@ class KiriKiriScript(TranslatableFile):
             if _kag_line(line) in _SCRIPT_START:
                 if group:
                     group.flush(intermediate_file, textlines, codec)
-                    group = _Group()
+                    group = new_group()
                 intermediate_file.write(line.encode(codec, errors='backslashreplace'))
                 script_start = i
                 continue
@@ -265,7 +294,7 @@ class KiriKiriScript(TranslatableFile):
             if stripped != '' and cls._should_ignore(stripped, ignore_patterns):
                 if group:
                     group.flush(intermediate_file, textlines, codec)
-                    group = _Group()
+                    group = new_group()
                 intermediate_file.write(line.encode(codec, errors='backslashreplace'))
                 continue
 
@@ -282,7 +311,7 @@ class KiriKiriScript(TranslatableFile):
             ):
                 if group:
                     group.flush(intermediate_file, textlines, codec)
-                    group = _Group()
+                    group = new_group()
 
                 if lstripped.startswith('[select link="'):
                     # Choice text lives in a tag attribute.
@@ -301,9 +330,9 @@ class KiriKiriScript(TranslatableFile):
                     group.add(key, text_content, leading, ending, eol='[r]')
                 elif group:
                     # Other macros ([p], [l][r], etc.) close any open group.
-                    group.text += text_content
+                    group.append(text_content)
                     group.flush(intermediate_file, textlines, codec, ending=ending, eol=eol)
-                    group = _Group()
+                    group = new_group()
                 else:
                     # Standalone macro-terminated line.
                     intermediate_file.write((leading + key + ending).encode(codec, errors='backslashreplace'))
@@ -313,7 +342,7 @@ class KiriKiriScript(TranslatableFile):
                 group.add(key, stripped, leading, ending)
             elif group:
                 # Plain continuation of an already-open group.
-                group.text += stripped
+                group.append(stripped)
                 group.ending = ending
             else:
                 # Standalone text line with no macro.

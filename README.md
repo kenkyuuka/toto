@@ -45,6 +45,10 @@ Options:
 - `--codec` — force a specific text encoding
 - `--ignore-line-regex` — regex pattern to skip matching lines (repeatable)
 - `--unwrap` — remove inline line breaks from extracted text for re-wrapping on insertion (supported formats: `agsd`, `ai6win`, `blackrainbow`, `dxlib`; on by default for `ai6win`, `blackrainbow` and `dxlib`)
+- `--group-start` — prefix of a text line that starts a message spanning several lines, which is extracted as one string (repeatable; `kirikiri` only; default `「` and full-width space). The message runs until a line-end macro other than `[r]`, or a blank, command or tag-only line
+- `--group-all-lines` — let every text line start such a message, for games that split narration over several lines without `[r]` and end it with a macro on its own line, such as `[tp]` (`kirikiri` only)
+- `--line-end-macros` — regex for the tags that end a line of text (`kirikiri` only; default `(?:\[[^\]]+\])+\\?`). `[r]` continues a message, any other match ends it; an empty value turns off macro handling and grouping
+- `--strip-continuation-indent` — remove full-width spaces from the start of the second and later lines of a message (`kirikiri` only)
 - `--key` — hex encryption key for formats that need one (`blackrainbow`: the message key; by default the known keys are tried)
 - `--output-format` — `txt` (default): `<script>.transNNN.txt` files with one string per line, in batches of 10000; `po`: one gettext `<script>.po` file per script (see [PO output](#po-output))
 
