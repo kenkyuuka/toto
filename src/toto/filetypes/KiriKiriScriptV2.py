@@ -239,7 +239,7 @@ class KiriKiriScript(TranslatableFile):
         ),
         line_end_macros=r'(?:\[[^\]]+\])+\\?',
         ignore_patterns=(),
-        strip_continuation_indent=False,
+        strip_continuation_indent=True,
         **kwargs,
     ) -> tuple[BytesIO, list[TextLine], dict]:
         """Extract text lines, joining multi-line messages into one string.
@@ -249,8 +249,9 @@ class KiriKiriScript(TranslatableFile):
         also continues through lines ending in ``[r]``, and is closed by any
         other match of *line_end_macros* or by a blank, command or tag-only
         line.  An empty *line_end_macros* disables both macro handling and
-        grouping.  With *strip_continuation_indent*, leading full-width
-        spaces are dropped from the second and later lines of a group.
+        grouping.  Since a group's lines are joined and rewrapped on insert,
+        leading full-width spaces are dropped from its second and later
+        lines, unless *strip_continuation_indent* is false.
         """
         intermediate_file = BytesIO()
         textlines: list[TextLine] = []

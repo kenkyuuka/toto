@@ -76,7 +76,7 @@ class TestGroupingOptions:
         result, lines = run_extract(tmp_path, '--line-end-macros', r'\[p\]')
         assert result.exit_code == 0, result.output
         # [r] is no longer a macro, so it stays in the text.
-        assert lines[3] == '「ああ、大変だ！　大変だ！[r]　遅刻してしまう！」'
+        assert lines[3] == '「ああ、大変だ！　大変だ！[r]遅刻してしまう！」'
 
     def test_empty_line_end_macros_disables_grouping(self, tmp_path):
         result, lines = run_extract(tmp_path, '--line-end-macros', '')
@@ -88,10 +88,20 @@ class TestGroupingOptions:
         assert result.exit_code != 0
         assert 'Invalid regex' in result.output
 
+    def test_continuation_indent_stripped_by_default(self, tmp_path):
+        result, lines = run_extract(tmp_path)
+        assert result.exit_code == 0, result.output
+        assert lines[3] == '「ああ、大変だ！　大変だ！遅刻してしまう！」'
+
     def test_strip_continuation_indent(self, tmp_path):
         result, lines = run_extract(tmp_path, '--strip-continuation-indent')
         assert result.exit_code == 0, result.output
         assert lines[3] == '「ああ、大変だ！　大変だ！遅刻してしまう！」'
+
+    def test_no_strip_continuation_indent(self, tmp_path):
+        result, lines = run_extract(tmp_path, '--no-strip-continuation-indent')
+        assert result.exit_code == 0, result.output
+        assert lines[3] == '「ああ、大変だ！　大変だ！　遅刻してしまう！」'
 
     def test_unsupported_handler_warns(self, tmp_path):
         empty = tmp_path / 'empty'
@@ -102,3 +112,17 @@ class TestGroupingOptions:
         assert result.exit_code == 0, result.output
         assert 'agsd handler does not support --group-all-lines; ignored.' in result.output
         assert 'agsd handler does not support --strip-continuation-indent; ignored.' in result.output
+
+    def test_no_strip_continuation_indent_unsupported_handler_warns(self, tmp_path):
+        empty = tmp_path / 'empty'
+        empty.mkdir()
+        result, _ = run_extract(tmp_path, '--no-strip-continuation-indent', filetype='agsd', source=empty)
+        assert result.exit_code == 0, result.output
+        assert 'agsd handler does not support --no-strip-continuation-indent; ignored.' in result.output
+
+    def test_no_warning_without_options(self, tmp_path):
+        empty = tmp_path / 'empty'
+        empty.mkdir()
+        result, _ = run_extract(tmp_path, filetype='agsd', source=empty)
+        assert result.exit_code == 0, result.output
+        assert 'does not support' not in result.output
