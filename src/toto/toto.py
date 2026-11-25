@@ -78,10 +78,10 @@ def cli():
     r"Default: '(?:\[[^\]]+\])+\\?' (kirikiri).",
 )
 @click.option(
-    '--strip-continuation-indent',
-    is_flag=True,
-    default=False,
-    help='Remove full-width spaces from the start of the second and later lines of a multi-line message.',
+    '--strip-continuation-indent/--no-strip-continuation-indent',
+    default=None,
+    help='Remove full-width spaces from the start of the second and later lines of a multi-line message, '
+    'since its lines are joined and rewrapped on insert. On by default (kirikiri).',
 )
 def extract(
     paths,
@@ -96,7 +96,7 @@ def extract(
     group_start=(),
     group_all_lines=False,
     line_end_macros=None,
-    strip_continuation_indent=False,
+    strip_continuation_indent=None,
 ):
     """Extract lines from script files into a single file.
 
@@ -159,8 +159,9 @@ def extract(
         grouping_kwargs['group_starts'] = ('--group-start', tuple(group_start))
     if line_end_macros is not None:
         grouping_kwargs['line_end_macros'] = ('--line-end-macros', line_end_macros)
-    if strip_continuation_indent:
-        grouping_kwargs['strip_continuation_indent'] = ('--strip-continuation-indent', True)
+    if strip_continuation_indent is not None:
+        flag = '--strip-continuation-indent' if strip_continuation_indent else '--no-strip-continuation-indent'
+        grouping_kwargs['strip_continuation_indent'] = (flag, strip_continuation_indent)
     handler_params = inspect.signature(fmt.extract_lines).parameters
     for name, (flag, _) in list(grouping_kwargs.items()):
         if name not in handler_params:

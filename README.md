@@ -48,7 +48,7 @@ Options:
 - `--group-start` — prefix of a text line that starts a message spanning several lines, which is extracted as one string (repeatable; `kirikiri` only; default `「` and full-width space). The message runs until a line-end macro other than `[r]`, or a blank, command or tag-only line
 - `--group-all-lines` — let every text line start such a message, for games that split narration over several lines without `[r]` and end it with a macro on its own line, such as `[tp]` (`kirikiri` only)
 - `--line-end-macros` — regex for the tags that end a line of text (`kirikiri` only; default `(?:\[[^\]]+\])+\\?`). `[r]` continues a message, any other match ends it; an empty value turns off macro handling and grouping
-- `--strip-continuation-indent` — remove full-width spaces from the start of the second and later lines of a message (`kirikiri` only)
+- `--strip-continuation-indent` / `--no-strip-continuation-indent` — whether to remove full-width spaces from the start of the second and later lines of a message, since its lines are joined and rewrapped on insert (`kirikiri` only; on by default)
 - `--key` — hex encryption key for formats that need one (`blackrainbow`: the message key; by default the known keys are tried)
 - `--output-format` — `txt` (default): `<script>.transNNN.txt` files with one string per line, in batches of 10000; `po`: one gettext `<script>.po` file per script (see [PO output](#po-output))
 
