@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **KiriKiri**: New `extract` options to control how lines are joined into one string. `--group-start` (repeatable) sets the prefixes that start a message spanning several lines (default `「` and the full-width space); `--group-all-lines` lets every text line start one, for games that split narration over several lines without `[r]` and close it with a macro on its own line (`[tp]`, `[hitret ]`). This restores the joining the old `kirikiriscript` handler did, so translation memories from it match again. `--line-end-macros` replaces the regex for line-ending tags, like the old `--lineendmacros`. `--strip-continuation-indent` drops the full-width indent from the second and later lines of a message, which otherwise ends up mid-sentence (`「大変だ！　遅刻してしまう！」` instead of `「大変だ！遅刻してしまう！」`). Other handlers ignore these options with a warning.
+
 ## [1.3.0] — 2026-11-23
 
 ### Added

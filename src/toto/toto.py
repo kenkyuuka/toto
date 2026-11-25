@@ -1,3 +1,4 @@
+import inspect
 import os
 import pathlib
 import re
@@ -54,8 +55,48 @@ def cli():
     help='Format of the text to translate: txt (one line per string, in batches of 10000) or po '
     '(one gettext PO file per script, with metadata such as the speaker as comments).',
 )
+@click.option(
+    '--group-start',
+    multiple=True,
+    help='Prefix of a text line that starts a message spanning several lines. The lines are joined into one '
+    'string up to a line-end macro other than [r], or a blank, command or tag-only line. Can be repeated. '
+    "Default: '「' and '　' (kirikiri).",
+)
+@click.option(
+    '--group-all-lines',
+    is_flag=True,
+    default=False,
+    help='Let every text line start a multi-line message, instead of only those given by --group-start.',
+)
+@click.option(
+    '--line-end-macros',
+    type=str,
+    default=None,
+    metavar='REGEX',
+    help=r"Regex for the tags that end a line of text, such as '(?:\[L_NEXT\]|\[T_NEXT\])\\?'. [r] continues "
+    r"a message, any other match ends it. An empty value turns off macro handling and grouping. "
+    r"Default: '(?:\[[^\]]+\])+\\?' (kirikiri).",
+)
+@click.option(
+    '--strip-continuation-indent',
+    is_flag=True,
+    default=False,
+    help='Remove full-width spaces from the start of the second and later lines of a multi-line message.',
+)
 def extract(
-    paths, outpath, workpath, codec, filetype=None, ignore_line_regex=(), unwrap=None, key=None, output_format='txt'
+    paths,
+    outpath,
+    workpath,
+    codec,
+    filetype=None,
+    ignore_line_regex=(),
+    unwrap=None,
+    key=None,
+    output_format='txt',
+    group_start=(),
+    group_all_lines=False,
+    line_end_macros=None,
+    strip_continuation_indent=False,
 ):
     """Extract lines from script files into a single file.
 
@@ -85,6 +126,21 @@ def extract(
         except ValueError as e:
             raise click.BadParameter(f'{key!r} is not a hex key: {e}', param_hint="'--key'") from None
 
+    if group_all_lines and group_start:
+        raise click.UsageError('--group-all-lines and --group-start cannot be used together.')
+    if '' in group_start:
+        raise click.BadParameter(
+            'an empty prefix is not allowed; use --group-all-lines to group every text line.',
+            param_hint="'--group-start'",
+        )
+    if line_end_macros:
+        try:
+            re.compile(line_end_macros)
+        except re.error as e:
+            raise click.BadParameter(
+                f'Invalid regex {line_end_macros!r}: {e}', param_hint="'--line-end-macros'"
+            ) from None
+
     workpath.mkdir(parents=True, exist_ok=True)
     outpath.parent.mkdir(parents=True, exist_ok=True)
 
@@ -94,6 +150,22 @@ def extract(
         raise RuntimeError("Unsupported file type specified.")
     else:
         fmt = filetype_plugins[filetype.lower()].load()
+
+    # Grouping options, passed only to handlers that take them.
+    grouping_kwargs = {}
+    if group_all_lines:
+        grouping_kwargs['group_starts'] = ('--group-all-lines', ('',))
+    elif group_start:
+        grouping_kwargs['group_starts'] = ('--group-start', tuple(group_start))
+    if line_end_macros is not None:
+        grouping_kwargs['line_end_macros'] = ('--line-end-macros', line_end_macros)
+    if strip_continuation_indent:
+        grouping_kwargs['strip_continuation_indent'] = ('--strip-continuation-indent', True)
+    handler_params = inspect.signature(fmt.extract_lines).parameters
+    for name, (flag, _) in list(grouping_kwargs.items()):
+        if name not in handler_params:
+            click.echo(f'Warning: {filetype} handler does not support {flag}; ignored.', err=True)
+            del grouping_kwargs[name]
 
     # Compute common root of all input paths so that relative paths
     # preserve directory structure.
@@ -122,6 +194,7 @@ def extract(
                 kwargs['unwrap'] = unwrap
             if key is not None:
                 kwargs['key'] = key
+            kwargs.update({name: value for name, (_, value) in grouping_kwargs.items()})
             intermediate_file, textlines, metadata = fmt.extract_lines(f, **kwargs)
         (workpath / rel_path).parent.mkdir(parents=True, exist_ok=True)
         with open(workpath / rel_path, 'wb') as f:
