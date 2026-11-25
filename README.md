@@ -15,6 +15,7 @@ A visual novel script localization tool. toto extracts translatable text from va
 | ADVDX (BLACKRAINBOW) | `blackrainbow` | `.spt` (unpacked from `*_spt.dat` / `script.dat` with tamago) |
 | AI6WIN (elf, Silky's) | `ai6win` | `.mes` (unpacked from `mes.arc` with tamago ≥ 1.7) |
 | Silky Engine (Silky's Sakura) | `silky` | `.mes` (unpacked from `Script.arc`) |
+| Artemis (KAG-style text scripts) | `artemis` | scenario `.txt` (unpacked from `.pfs` with tamago) |
 
 ## Installation
 
@@ -45,7 +46,7 @@ Options:
 - `--workpath` — where to store intermediate files (default: `./working/`)
 - `--codec` — force a specific text encoding
 - `--ignore-line-regex` — regex pattern to skip matching lines (repeatable)
-- `--unwrap` — remove inline line breaks from extracted text for re-wrapping on insertion (supported formats: `agsd`, `ai6win`, `blackrainbow`, `dxlib`; on by default for `ai6win`, `blackrainbow` and `dxlib`)
+- `--unwrap` — remove inline line breaks from extracted text for re-wrapping on insertion (supported formats: `agsd`, `ai6win`, `artemis`, `blackrainbow`, `dxlib`; on by default for `ai6win`, `artemis`, `blackrainbow` and `dxlib`)
 - `--group-start` — prefix of a text line that starts a message spanning several lines, which is extracted as one string (repeatable; `kirikiri` only; default `「` and full-width space). The message runs until a line-end macro other than `[r]`, or a blank, command or tag-only line
 - `--group-all-lines` — let every text line start such a message, for games that split narration over several lines without `[r]` and end it with a macro on its own line, such as `[tp]` (`kirikiri` only)
 - `--line-end-macros` — regex for the tags that end a line of text (`kirikiri` only; default `(?:\[[^\]]+\])+\\?`). `[r]` continues a message, any other match ends it; an empty value turns off macro handling and grouping
@@ -57,7 +58,7 @@ Options:
 
 With `--output-format po`, each string becomes a PO entry whose `msgctxt` is its placeholder key (so `insert` matches translations by key, not by position) and whose `msgid` is exactly the line the txt output would contain. Translation memories made with txt files therefore still match after switching formats.
 
-Where the handler knows who is speaking, the entry carries a `#. Speaker: <name>` comment, which OmegaT shows in its Comments pane without making it part of the text to translate. Speakers are known for `advhd`, `ai6win`, `blackrainbow`, `dxlib` (with `--unwrap`, the default), `mgos` and `systemnnn`.
+Where the handler knows who is speaking, the entry carries a `#. Speaker: <name>` comment, which OmegaT shows in its Comments pane without making it part of the text to translate. Speakers are known for `advhd`, `ai6win`, `artemis`, `blackrainbow`, `dxlib` (with `--unwrap`, the default), `mgos` and `systemnnn`.
 
 In OmegaT, turn on the PO filter's "Skip PO header" option; otherwise the header shows up as two segments to translate. To switch an existing project to PO, re-extract with `--output-format po` and delete the old `.trans*.txt` files from both `source/` and `target/`: `insert` stops with an error if it finds both formats for one script.
 
@@ -73,7 +74,7 @@ Options:
 - `--filetype` (required) — engine format
 - `--outpath` — where to write patched scripts (default: `./patch/`)
 - `--workpath` — intermediate file directory (default: `./working/`)
-- `--width` — line width for text wrapping (default: the handler's own, usually 60; supported formats: `agsd`, `ai6win`, `blackrainbow`, `dxlib`, `kirikiri`)
+- `--width` — line width for text wrapping (default: the handler's own, usually 60; supported formats: `agsd`, `ai6win`, `artemis`, `blackrainbow`, `dxlib`, `kirikiri`)
 - `--wrap` — wrapping mode (supported formats: `agsd`, `kirikiri`)
 - `--codec` — force output encoding
 - `--skip-identical` — skip files where all translations match the original

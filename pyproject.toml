@@ -45,6 +45,7 @@ systemnnn = "toto.filetypes.SystemNnnSpt:SystemNnnSpt"
 systemnnn-xtx = "toto.filetypes.SystemNnnXtx:SystemNnnXtx"
 ai6win = "toto.filetypes.Ai6WinMes:Ai6WinMes"
 silky = "toto.filetypes.SilkyMes:SilkyMes"
+artemis = "toto.filetypes.ArtemisTxt:ArtemisTxt"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/toto"]

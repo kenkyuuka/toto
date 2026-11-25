@@ -14,6 +14,7 @@ from toto.tests.filetypes.AdvHdWs2.test_advhd_ws2 import _make_multi_speaker_ws2
 from toto.tests.filetypes.AGSD.test_agsd_spt import make_dialogue_spt
 from toto.tests.filetypes.AI6WIN.test_ai6win_mes import sample as ai6win_sample
 from toto.tests.filetypes.Anim.test_anim import make_define_with_brackets
+from toto.tests.filetypes.Artemis.test_artemis_txt import sample as artemis_sample
 from toto.tests.filetypes.BlackRainbow.test_blackrainbow_spt import sample as blackrainbow_sample
 from toto.tests.filetypes.DxLib.test_unwrap import dialogue_script
 from toto.tests.filetypes.Mgos.test_mgos import make_mgos_direction_script
@@ -41,6 +42,7 @@ FIXTURES = {
     'systemnnn-xtx': ('systemnnn-xtx', {'spt/namecol.xtx': NAMECOL}),
     'ai6win': ('ai6win', {'stage/stage00.mes': ai6win_sample()}),
     'silky': ('silky', {'script/OT_ALICE01.MES': silky_sample()}),
+    'artemis': ('artemis', {'scenario/00_com/s001a.txt': artemis_sample()}),
 }
 
 
